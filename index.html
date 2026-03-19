@@ -69,6 +69,9 @@
       const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
       const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
       const hasLO = parts.some(p => p === 'LO' || /^LO\d+/.test(p));
+      const hasGQ = parts.some(p => p === 'GQ' || /^GQ\d+/.test(p));
+
+      if (hasGQ && !hasLO && !hasK && !hasU && !hasSP) return 'questions';
 
       if (hasU) return 'understandings';
       if (hasK) return 'knows';
@@ -76,6 +79,20 @@
       if (hasLO) return 'goals';
       
       return 'other'; 
+    };
+
+    // Consolidated Color Mapping Logic
+    const getCodeBgColor = (code, isHoverable = false) => {
+      const upperCode = code.toUpperCase();
+      
+      if (upperCode.includes('LO.1') || upperCode.includes('GQ.1')) return isHoverable ? 'bg-blue-100 hover:bg-blue-200' : 'bg-blue-100';
+      if (upperCode.includes('LO.2') || upperCode.includes('GQ.2')) return isHoverable ? 'bg-orange-100 hover:bg-orange-200' : 'bg-orange-100';
+      if (upperCode.includes('LO.3') || upperCode.includes('GQ.3')) return isHoverable ? 'bg-red-100 hover:bg-red-200' : 'bg-red-100';
+      if (upperCode.includes('LO.4') || upperCode.includes('GQ.4')) return isHoverable ? 'bg-purple-100 hover:bg-purple-200' : 'bg-purple-100';
+      if (upperCode.includes('LO.5') || upperCode.includes('GQ.5')) return isHoverable ? 'bg-yellow-100 hover:bg-yellow-200' : 'bg-yellow-100';
+      if (!upperCode.includes('LO')) return isHoverable ? 'bg-green-100 hover:bg-green-200' : 'bg-green-100';
+      
+      return isHoverable ? 'bg-white hover:brightness-95' : 'bg-gray-50'; // Fallbacks
     };
 
     // HTML-to-Word exporter
@@ -86,6 +103,7 @@
         skills: items.filter(i => getCategory(i.code) === 'skills'),
         goals: items.filter(i => getCategory(i.code) === 'goals'),
         other: items.filter(i => getCategory(i.code) === 'other'),
+        questions: items.filter(i => getCategory(i.code) === 'questions'),
       };
 
       const renderList = (list) => {
@@ -118,11 +136,11 @@
             </tr>
             <tr>
               <td colspan="2">
-                <h2>ESTABLISHED GOALS</h2>
+                <h2>LEARNING OUTCOMES (LO)</h2>
                 ${renderList(categories.goals)}
                 
                 ${categories.other.length > 0 ? `
-                  <h2 style="margin-top: 15px;">OVERARCHING IDEAS / OTHER</h2>
+                  <h2 style="margin-top: 15px;">ORGANIZING IDEAS (OI)</h2>
                   ${renderList(categories.other)}
                 ` : ''}
               </td>
@@ -134,8 +152,8 @@
                 ${renderList(categories.understandings)}
               </td>
               <td style="width: 50%;">
-                <h2>ESSENTIAL QUESTIONS</h2>
-                <p><br><br><br></p>
+                <h2>GUIDING QUESTIONS (GQ)</h2>
+                ${renderList(categories.questions)}
               </td>
             </tr>
             <tr>
@@ -176,7 +194,7 @@
     // --- Icons ---
     const UploadIcon = () => <svg className="w-12 h-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>;
     const DownloadIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
-    const CheckCircleIcon = () => <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const CheckCircleIcon = () => <svg className="w-6 h-6 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const SaveIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
 
     // --- Main Application Component ---
@@ -259,8 +277,9 @@
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-100 sticky top-0 shadow-sm z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Code</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Description</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Use Count</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 1</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 2</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 3</th>
@@ -269,25 +288,47 @@
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 break-words align-top">{item.code}</td>
-                    <td className="px-6 py-4 text-sm text-gray-700 break-words align-top">{item.desc}</td>
-                    {['u1', 'u2', 'u3', 'u4', 'u5'].map((u) => (
-                      <td key={u} className="px-4 py-4 whitespace-nowrap text-center align-top">
-                        <input
-                          type="checkbox"
-                          className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-                          checked={item[u]}
-                          onChange={() => toggleUnit(item.id, u)}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {filteredItems.map((item) => {
+                  // Bold logic: anything without U, K, or SP
+                  const parts = item.code.toUpperCase().split('.');
+                  const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
+                  const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
+                  const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
+                  
+                  const isBold = !(hasU || hasK || hasSP);
+                  const textWeightClass = isBold ? 'font-bold text-gray-900' : 'font-normal text-gray-800';
+
+                  // Row background shading logic utilizing the consolidated mapper
+                  const bgClass = getCodeBgColor(item.code, true);
+
+                  // Use Count logic
+                  const useCount = [item.u1, item.u2, item.u3, item.u4, item.u5].filter(Boolean).length;
+                  const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
+
+                  // Display code (only last 4 chars)
+                  const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+
+                  return (
+                    <tr key={item.id} className={`transition-colors border-b border-gray-200 ${bgClass}`}>
+                      <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{displayCode}</td>
+                      <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{item.desc}</td>
+                      <td className={`px-4 py-4 whitespace-nowrap text-center align-top font-bold text-lg ${useCountColor}`}>{useCount}</td>
+                      {['u1', 'u2', 'u3', 'u4', 'u5'].map((u) => (
+                        <td key={u} className="px-4 py-4 whitespace-nowrap text-center align-top">
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
+                            checked={item[u]}
+                            onChange={() => toggleUnit(item.id, u)}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
                 {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500 bg-white">
                       No items found matching your search.
                     </td>
                   </tr>
@@ -309,6 +350,7 @@
           knows: unitItems.filter(i => getCategory(i.code) === 'knows'),
           skills: unitItems.filter(i => getCategory(i.code) === 'skills'),
           other: unitItems.filter(i => getCategory(i.code) === 'other'),
+          questions: unitItems.filter(i => getCategory(i.code) === 'questions'),
         };
 
         const renderSection = (title, list) => (
@@ -316,15 +358,20 @@
             <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">{title}</h3>
             {list.length > 0 ? (
               <ul className="space-y-3">
-                {list.map(item => (
-                  <li key={item.id} className="flex items-start">
-                    <CheckCircleIcon />
-                    <div className="ml-3">
-                      <span className="font-semibold text-gray-900 block">{item.code}</span>
-                      <span className="text-gray-700 text-sm">{item.desc}</span>
-                    </div>
-                  </li>
-                ))}
+                {list.map(item => {
+                  const itemBg = getCodeBgColor(item.code, false);
+                  const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+                  
+                  return (
+                    <li key={item.id} className={`flex items-start p-3 rounded-md border border-gray-100 ${itemBg}`}>
+                      <CheckCircleIcon />
+                      <div className="ml-3">
+                        <span className="font-bold text-gray-900 block">{displayCode}</span>
+                        <span className="text-gray-800 text-sm">{item.desc}</span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             ) : (
               <p className="text-gray-400 italic text-sm">No items assigned to this section yet.</p>
@@ -352,14 +399,17 @@
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-6">
-                {renderSection('Established Goals (LO without U, K, SP)', categories.goals)}
-                {renderSection('Students will know... (K)', categories.knows)}
-                {renderSection('Other / Overarching Ideas', categories.other)}
-              </div>
-              <div className="space-y-6">
+            <div className="space-y-6">
+              {renderSection('Organizing Ideas (OI)', categories.other)}
+              {renderSection('Learning Outcomes (LO)', categories.goals)}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderSection('Understandings (U)', categories.understandings)}
+                {renderSection('Guiding Questions (GQ)', categories.questions)}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderSection('Students will know... (K)', categories.knows)}
                 {renderSection('Students will be skilled at... (SP)', categories.skills)}
               </div>
             </div>
@@ -404,6 +454,19 @@
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Color Legend displayed globally when data is loaded */}
+            {items.length > 0 && activeTab !== 'import' && (
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+                <strong className="text-gray-800 uppercase tracking-wide text-xs">Color Legend:</strong>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-green-100 border border-green-300 mr-2"></span> Organizing Ideas (OI)</div>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-blue-100 border border-blue-300 mr-2"></span> LO.1 / GQ.1</div>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-orange-100 border border-orange-300 mr-2"></span> LO.2 / GQ.2</div>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-red-100 border border-red-300 mr-2"></span> LO.3 / GQ.3</div>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-purple-100 border border-purple-300 mr-2"></span> LO.4 / GQ.4</div>
+                <div className="flex items-center"><span className="w-4 h-4 rounded bg-yellow-100 border border-yellow-300 mr-2"></span> LO.5 / GQ.5</div>
+              </div>
+            )}
+
             {activeTab === 'import' && renderImport()}
             {activeTab === 'checklist' && items.length > 0 && renderChecklist()}
             {activeTab === 'u1' && items.length > 0 && renderUnitView(1)}

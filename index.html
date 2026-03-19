@@ -1,0 +1,396 @@
+import React, { useState, useMemo } from 'react';
+
+// --- Utility Functions ---
+
+// Robust CSV Parser
+function parseCSV(text) {
+  const result = [];
+  let cur = '';
+  let inQuotes = false;
+  let row = [];
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '"' && text[i+1] === '"') {
+      cur += '"';
+      i++;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      row.push(cur);
+      cur = '';
+    } else if (char === '\n' && !inQuotes) {
+      if (cur.endsWith('\r')) cur = cur.slice(0, -1);
+      row.push(cur);
+      result.push(row);
+      row = [];
+      cur = '';
+    } else {
+      cur += char;
+    }
+  }
+  
+  if (cur || row.length) {
+    if (cur.endsWith('\r')) cur = cur.slice(0, -1);
+    row.push(cur);
+    result.push(row);
+  }
+  
+  return result;
+}
+
+// Logic to categorize based on specific code presence
+const getCategory = (code) => {
+  if (!code) return 'other';
+  const parts = code.toUpperCase().split('.');
+  
+  const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
+  const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
+  const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
+  const hasLO = parts.some(p => p === 'LO' || /^LO\d+/.test(p));
+
+  if (hasU) return 'understandings';
+  if (hasK) return 'knows';
+  if (hasSP) return 'skills';
+  if (hasLO) return 'goals';
+  
+  return 'other'; 
+};
+
+// HTML-to-Word exporter
+const exportToWord = (unitName, items) => {
+  const categories = {
+    understandings: items.filter(i => getCategory(i.code) === 'understandings'),
+    knows: items.filter(i => getCategory(i.code) === 'knows'),
+    skills: items.filter(i => getCategory(i.code) === 'skills'),
+    goals: items.filter(i => getCategory(i.code) === 'goals'),
+    other: items.filter(i => getCategory(i.code) === 'other'),
+  };
+
+  const renderList = (list) => {
+    if (!list || list.length === 0) return '<p><i>None selected</i></p>';
+    return `<ul>${list.map(i => `<li style="margin-bottom: 6px;"><strong>${i.code}</strong>: ${i.desc}</li>`).join('')}</ul>`;
+  };
+
+  const html = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <meta charset='utf-8'>
+      <title>${unitName} Plan Template</title>
+      <style>
+        body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #000; padding: 12px; vertical-align: top; }
+        th { background-color: #e2e8f0; text-align: left; font-size: 14pt; }
+        h1 { text-align: center; color: #1e293b; }
+        h2 { font-size: 12pt; margin-top: 0; color: #334155; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+        ul { margin-top: 8px; padding-left: 20px; }
+      </style>
+    </head>
+    <body>
+      <h1>Understanding by Design (UbD) Unit Plan</h1>
+      <h2 style="text-align: center; font-size: 16pt; border: none; margin-bottom: 30px;">${unitName}</h2>
+      
+      <table>
+        <tr>
+          <th colspan="2">Stage 1 - Desired Results</th>
+        </tr>
+        <tr>
+          <td colspan="2">
+            <h2>ESTABLISHED GOALS</h2>
+            ${renderList(categories.goals)}
+            
+            ${categories.other.length > 0 ? `
+              <h2 style="margin-top: 15px;">OVERARCHING IDEAS / OTHER</h2>
+              ${renderList(categories.other)}
+            ` : ''}
+          </td>
+        </tr>
+        <tr>
+          <td style="width: 50%;">
+            <h2>UNDERSTANDINGS</h2>
+            <p><i>Students will understand that...</i></p>
+            ${renderList(categories.understandings)}
+          </td>
+          <td style="width: 50%;">
+            <h2>ESSENTIAL QUESTIONS</h2>
+            <p><br><br><br></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="width: 50%;">
+            <h2>STUDENTS WILL KNOW...</h2>
+            ${renderList(categories.knows)}
+          </td>
+          <td style="width: 50%;">
+            <h2>STUDENTS WILL BE SKILLED AT...</h2>
+            ${renderList(categories.skills)}
+          </td>
+        </tr>
+      </table>
+      
+      <table>
+        <tr><th>Stage 2 - Assessment Evidence</th></tr>
+        <tr><td><br><br><br><br><br></td></tr>
+      </table>
+      
+      <table>
+        <tr><th>Stage 3 - Learning Plan</th></tr>
+        <tr><td><br><br><br><br><br></td></tr>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.doc`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// --- Icons ---
+const UploadIcon = () => <svg className="w-12 h-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>;
+const DownloadIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
+const CheckCircleIcon = () => <svg className="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+const SaveIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
+
+// --- Main Application Component ---
+export default function App() {
+  const [items, setItems] = useState([]);
+  const [activeTab, setActiveTab] = useState('import');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result;
+      const parsed = parseCSV(text);
+      
+      // Assume the first row is headers, mapping subsequent valid rows
+      const data = parsed.slice(1)
+        .filter(r => r.length > 1 && r[0])
+        .map((r, index) => ({
+          id: index,
+          code: r[0],
+          desc: r[1] ? r[1].replace(/\n/g, ' ') : '',
+          u1: r[2] ? r[2].toLowerCase() === 'true' : false,
+          u2: r[3] ? r[3].toLowerCase() === 'true' : false,
+          u3: r[4] ? r[4].toLowerCase() === 'true' : false,
+          u4: r[5] ? r[5].toLowerCase() === 'true' : false,
+          u5: r[6] ? r[6].toLowerCase() === 'true' : false,
+        }));
+      
+      setItems(data);
+      setActiveTab('checklist');
+    };
+    reader.readAsText(file);
+  };
+
+  const toggleUnit = (id, unitField) => {
+    setItems(items.map(item => 
+      item.id === id ? { ...item, [unitField]: !item[unitField] } : item
+    ));
+  };
+
+  const filteredItems = useMemo(() => {
+    if (!searchTerm) return items;
+    return items.filter(item => 
+      item.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      item.desc.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [items, searchTerm]);
+
+  // View Components
+  const renderImport = () => (
+    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-lg shadow-sm border border-gray-200">
+      <UploadIcon />
+      <h2 className="text-2xl font-bold text-gray-800 mb-2">Upload Curriculum CSV</h2>
+      <p className="text-gray-500 mb-6 max-w-md text-center">
+        Please upload your <strong>MAIN.csv</strong> file containing the Code, Description, and Unit columns to begin planning.
+      </p>
+      <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors">
+        <span>Select CSV File</span>
+        <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+      </label>
+    </div>
+  );
+
+  const renderChecklist = () => (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col h-[70vh]">
+      <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+        <h2 className="text-lg font-bold text-gray-800">Master Checklist ({filteredItems.length} items)</h2>
+        <input 
+          type="text" 
+          placeholder="Search codes or descriptions..." 
+          className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      <div className="overflow-auto flex-1 relative">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100 sticky top-0 shadow-sm z-10">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Code</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Description</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 1</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 2</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 3</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 4</th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 5</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredItems.map((item) => (
+              <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                <td className="px-6 py-4 text-sm font-medium text-gray-900 break-words align-top">{item.code}</td>
+                <td className="px-6 py-4 text-sm text-gray-700 break-words align-top">{item.desc}</td>
+                {['u1', 'u2', 'u3', 'u4', 'u5'].map((u) => (
+                  <td key={u} className="px-4 py-4 whitespace-nowrap text-center align-top">
+                    <input
+                      type="checkbox"
+                      className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
+                      checked={item[u]}
+                      onChange={() => toggleUnit(item.id, u)}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {filteredItems.length === 0 && (
+              <tr>
+                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  No items found matching your search.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderUnitView = (unitNum) => {
+    const unitField = `u${unitNum}`;
+    const unitItems = items.filter(item => item[unitField]);
+    const unitName = `Unit ${unitNum}`;
+    
+    const categories = {
+      goals: unitItems.filter(i => getCategory(i.code) === 'goals'),
+      understandings: unitItems.filter(i => getCategory(i.code) === 'understandings'),
+      knows: unitItems.filter(i => getCategory(i.code) === 'knows'),
+      skills: unitItems.filter(i => getCategory(i.code) === 'skills'),
+      other: unitItems.filter(i => getCategory(i.code) === 'other'),
+    };
+
+    const renderSection = (title, list) => (
+      <div className="mb-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">{title}</h3>
+        {list.length > 0 ? (
+          <ul className="space-y-3">
+            {list.map(item => (
+              <li key={item.id} className="flex items-start">
+                <CheckCircleIcon />
+                <div className="ml-3">
+                  <span className="font-semibold text-gray-900 block">{item.code}</span>
+                  <span className="text-gray-700 text-sm">{item.desc}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-400 italic text-sm">No items assigned to this section yet.</p>
+        )}
+      </div>
+    );
+
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-10">
+        <div className="flex justify-between items-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">{unitName} Overview</h2>
+            <p className="text-gray-500 text-sm mt-1">{unitItems.length} items total allocated to this unit.</p>
+          </div>
+          <button 
+            onClick={() => exportToWord(unitName, unitItems)}
+            disabled={unitItems.length === 0}
+            className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
+              ${unitItems.length > 0 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+          >
+            <DownloadIcon />
+            Generate Unit Plan Template
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            {renderSection('Established Goals (LO without U, K, SP)', categories.goals)}
+            {renderSection('Students will know... (K)', categories.knows)}
+            {renderSection('Other / Overarching Ideas', categories.other)}
+          </div>
+          <div className="space-y-6">
+            {renderSection('Understandings (U)', categories.understandings)}
+            {renderSection('Students will be skilled at... (SP)', categories.skills)}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
+            <h1 className="text-xl font-bold text-blue-900 flex items-center">
+              <SaveIcon />
+              Curriculum Unit Planner
+            </h1>
+            <nav className="flex space-x-1">
+              {['import', 'checklist', 'u1', 'u2', 'u3', 'u4', 'u5'].map((tab) => {
+                const isUnit = tab.startsWith('u');
+                const label = isUnit ? `Unit ${tab.replace('u', '')}` : (tab === 'import' ? 'Data Import' : 'MAIN Checklist');
+                const isDisabled = items.length === 0 && tab !== 'import';
+                
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    disabled={isDisabled}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors
+                      ${activeTab === tab 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'text-gray-600 hover:bg-gray-100'}
+                      ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'import' && renderImport()}
+        {activeTab === 'checklist' && items.length > 0 && renderChecklist()}
+        {activeTab === 'u1' && items.length > 0 && renderUnitView(1)}
+        {activeTab === 'u2' && items.length > 0 && renderUnitView(2)}
+        {activeTab === 'u3' && items.length > 0 && renderUnitView(3)}
+        {activeTab === 'u4' && items.length > 0 && renderUnitView(4)}
+        {activeTab === 'u5' && items.length > 0 && renderUnitView(5)}
+      </main>
+    </div>
+  );
+}

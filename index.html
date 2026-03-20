@@ -22,7 +22,7 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useMemo, useEffect } = React;
+    const { useState, useMemo, useEffect, useRef } = React;
 
     // --- Utility Functions ---
 
@@ -318,9 +318,13 @@
       const [searchTerm, setSearchTerm] = useState('');
       const [saveStatus, setSaveStatus] = useState('');
       
+      // Custom Scrollbar References
+      const tableRef = useRef(null);
+      const scrollRef = useRef(null);
+
       // Course Selection Config
       const [appConfig, setAppConfig] = useState({ grade: '7', subject: 'Social Studies', numUnits: 5 });
-      const [loadedConfig, setLoadedConfig] = useState(null); // Tracks the currently active/loaded config
+      const [loadedConfig, setLoadedConfig] = useState(null);
       const [loadingData, setLoadingData] = useState(false);
       const [loadError, setLoadError] = useState('');
       
@@ -342,7 +346,6 @@
               setAppConfig(parsed.loadedConfig);
               setActiveTab('checklist');
             } else if (Array.isArray(parsed)) {
-              // Legacy support: flush if it's the old raw array style format
               localStorage.removeItem('curriculumPlannerData');
             }
           } catch (e) {
@@ -354,12 +357,11 @@
       const handleSaveProgress = () => {
         localStorage.setItem('curriculumPlannerData', JSON.stringify({ items, loadedConfig }));
         setSaveStatus('Saved!');
-        setTimeout(() => setSaveStatus(''), 2000); // Reverts text back after 2 seconds
+        setTimeout(() => setSaveStatus(''), 2000); 
       };
 
       const handleReset = () => {
         if (!loadedConfig) return;
-        // Clear all selected units
         const clearedItems = items.map(item => {
           const newItem = { ...item };
           for(let i = 1; i <= loadedConfig.numUnits; i++) {
@@ -395,7 +397,6 @@
           const text = await res.text();
           const parsed = parseCSV(text);
           
-          // Map data and inject 'false' for all requested dynamic units
           const data = parsed.slice(1)
             .filter(r => r.length > 1 && r[0])
             .map((r, index) => {
@@ -428,6 +429,19 @@
         }
       };
 
+      // Custom synced horizontal scrolling behavior 
+      const handleTableScroll = (e) => {
+        if (scrollRef.current && scrollRef.current.scrollLeft !== e.target.scrollLeft) {
+          scrollRef.current.scrollLeft = e.target.scrollLeft;
+        }
+      };
+
+      const handleFakeScroll = (e) => {
+        if (tableRef.current && tableRef.current.scrollLeft !== e.target.scrollLeft) {
+          tableRef.current.scrollLeft = e.target.scrollLeft;
+        }
+      };
+
       const toggleUnit = (id, unitField) => {
         const toggledItem = items.find(i => i.id === id);
         if (!toggledItem) return;
@@ -439,7 +453,6 @@
         let partnerMatchFn = null;
         let parentMatchFns = [];
         
-        // If a base LO or GQ is toggled, dynamically link its counterpart
         const numMatch = code.match(/(?:LO|GQ)\.(\d+)/);
         if (numMatch && (cat === 'goals' || cat === 'questions')) {
            const num = numMatch[1];
@@ -452,7 +465,6 @@
            }
         }
 
-        // If a U, K, or SP is selected, auto-select its corresponding OI, LO, and GQ
         const isChild = cat === 'understandings' || cat === 'knows' || cat === 'skills';
         if (newState === true && isChild) {
            const oiMatch = code.match(/OI\.(\d+)/);
@@ -492,7 +504,7 @@
       };
 
       const scrollToGroup = (groupNum) => {
-        setSearchTerm(''); // Clear the search bar to ensure the item is visible on screen
+        setSearchTerm(''); 
         
         const executeScroll = () => {
            const match = items.find(i => {
@@ -504,8 +516,6 @@
               const el = document.getElementById(`row-${match.id}`);
               if (el) {
                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                 
-                 // Apply a brief highlight effect so the user spots it immediately
                  const originalBg = el.style.backgroundColor;
                  el.style.transition = 'background-color 0.5s';
                  el.style.backgroundColor = '#fef08a'; 
@@ -516,19 +526,17 @@
 
         if (activeTab !== 'checklist') {
            setActiveTab('checklist');
-           setTimeout(executeScroll, 150); // wait for view to switch
+           setTimeout(executeScroll, 150); 
         } else {
-           setTimeout(executeScroll, 50); // wait for search clear to render
+           setTimeout(executeScroll, 50); 
         }
       };
 
-      // Safely navigate tabs checking for unsaved changes
       const handleTabClick = (tab) => {
         if (activeTab === 'checklist' && tab !== 'checklist') {
           const savedData = localStorage.getItem('curriculumPlannerData');
           const currentData = JSON.stringify({ items, loadedConfig });
           
-          // Trigger save prompt if there is data, and it differs from what was last saved to localStorage
           if (items.length > 0 && savedData !== currentData) {
             setPendingTab(tab);
             setShowSavePrompt(true);
@@ -725,7 +733,7 @@
             </div>
           </div>
 
-          {/* Guiding Principles Section (Using Accordions) */}
+          {/* Guiding Principles Section */}
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
               <LightbulbIcon />
@@ -819,8 +827,8 @@
         const unitCount = loadedConfig ? loadedConfig.numUnits : 0;
         
         return (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '70vh' }}>
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '75vh' }}>
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0 z-50 relative">
               <h2 className="text-lg font-bold text-gray-800">Checklist ({filteredItems.length} items)</h2>
               <div className="flex items-center space-x-3">
                 <button 
@@ -844,68 +852,95 @@
                 />
               </div>
             </div>
-            <div className="overflow-x-auto overflow-y-auto flex-1 relative">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100 sticky top-0 shadow-sm z-40">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 min-w-[8rem] max-w-[8rem] sticky left-0 z-50 bg-gray-100">Code</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[400px] min-w-[400px] max-w-[400px] sticky left-32 z-50 bg-gray-100 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">Description</th>
-                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Use Count</th>
-                    {/* Render dynamic unit headers */}
-                    {Array.from({length: unitCount}, (_, i) => (
-                       <th key={`th-u${i+1}`} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Unit {i+1}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredItems.map((item) => {
-                    const parts = item.code.toUpperCase().split('.');
-                    const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
-                    const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
-                    const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
-                    
-                    const isBold = !(hasU || hasK || hasSP);
-                    const textWeightClass = isBold ? 'font-bold text-gray-900' : 'font-normal text-gray-800';
-
-                    const bgClass = getCodeBgColor(item.code, true);
-
-                    const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
-                    const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
-
-                    const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
-
-                    return (
-                      <tr id={`row-${item.id}`} key={item.id} className={`transition-colors border-b border-gray-200 ${bgClass}`}>
-                        <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass} w-32 min-w-[8rem] max-w-[8rem] sticky left-0 z-20 bg-inherit`} style={{ backgroundColor: 'inherit' }}>{displayCode}</td>
-                        <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass} w-[400px] min-w-[400px] max-w-[400px] sticky left-32 z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit`} style={{ backgroundColor: 'inherit' }}>{item.desc}</td>
-                        <td className={`px-4 py-4 whitespace-nowrap text-center align-top font-bold text-lg ${useCountColor}`}>{useCount}</td>
-                        {/* Render dynamic unit checkboxes */}
-                        {Array.from({length: unitCount}, (_, i) => {
-                          const uField = `u${i+1}`;
-                          return (
-                            <td key={uField} className="px-4 py-4 whitespace-nowrap text-center align-top">
-                              <input
-                                type="checkbox"
-                                className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
-                                checked={item[uField]}
-                                onChange={() => toggleUnit(item.id, uField)}
-                              />
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                  {filteredItems.length === 0 && (
+            
+            {/* Split Scrolling System Implementation */}
+            <div className="overflow-hidden flex-1 flex flex-col relative bg-white rounded-b-lg">
+              
+              {/* Primary Table (X-axis native scrollbar hidden via CSS) */}
+              <div 
+                className="flex-1 overflow-y-auto overflow-x-auto hide-native-scrollbar-x custom-scrollbar-y"
+                ref={tableRef}
+                onScroll={handleTableScroll}
+              >
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-100 sticky top-0 z-40">
                     <tr>
-                      <td colSpan={3 + unitCount} className="px-6 py-8 text-center text-gray-500 bg-white">
-                        No items found matching your search.
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[120px] min-w-[120px] max-w-[120px] sticky left-0 z-50 bg-gray-100">Code</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[400px] min-w-[400px] max-w-[400px] sticky left-[120px] z-50 bg-gray-100 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">Description</th>
+                      <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[100px] min-w-[100px]">Use Count</th>
+                      {/* Render dynamic unit headers */}
+                      {Array.from({length: unitCount}, (_, i) => (
+                         <th key={`th-u${i+1}`} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-[80px] min-w-[80px]">Unit {i+1}</th>
+                      ))}
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 relative z-10">
+                    {filteredItems.map((item) => {
+                      const parts = item.code.toUpperCase().split('.');
+                      const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
+                      const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
+                      const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
+                      
+                      const isBold = !(hasU || hasK || hasSP);
+                      const textWeightClass = isBold ? 'font-bold text-gray-900' : 'font-normal text-gray-800';
+
+                      const bgClass = getCodeBgColor(item.code, true);
+
+                      const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
+                      const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
+
+                      const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+
+                      return (
+                        <tr id={`row-${item.id}`} key={item.id} className={`transition-colors border-b border-gray-200 ${bgClass}`}>
+                          {/* Frozen sticky columns */}
+                          <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass} w-[120px] min-w-[120px] max-w-[120px] sticky left-0 z-20 bg-inherit`} style={{ backgroundColor: 'inherit' }}>{displayCode}</td>
+                          <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass} w-[400px] min-w-[400px] max-w-[400px] sticky left-[120px] z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit`} style={{ backgroundColor: 'inherit' }}>{item.desc}</td>
+                          {/* Flowing columns */}
+                          <td className={`px-4 py-4 whitespace-nowrap text-center align-top font-bold text-lg ${useCountColor} w-[100px] min-w-[100px]`}>{useCount}</td>
+                          {Array.from({length: unitCount}, (_, i) => {
+                            const uField = `u${i+1}`;
+                            return (
+                              <td key={uField} className="px-4 py-4 whitespace-nowrap text-center align-top w-[80px] min-w-[80px]">
+                                <input
+                                  type="checkbox"
+                                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
+                                  checked={item[uField]}
+                                  onChange={() => toggleUnit(item.id, uField)}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
+                    {filteredItems.length === 0 && (
+                      <tr>
+                        <td colSpan={3 + unitCount} className="px-6 py-8 text-center text-gray-500 bg-white">
+                          No items found matching your search.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Offset Fake Horizontal Scrollbar Component */}
+              <div className="flex bg-gray-50 border-t border-gray-200 shrink-0 relative z-50">
+                 {/* Solid spacer matching the frozen column width exactly */}
+                 <div className="w-[520px] shrink-0 border-r-2 border-gray-300 bg-gray-100"></div>
+                 {/* Scroll track matching remainder width */}
+                 <div 
+                    className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar-x"
+                    ref={scrollRef}
+                    onScroll={handleFakeScroll}
+                 >
+                    {/* Inner virtual width mapped to real columns (100px + 80px per unit) */}
+                    <div style={{ width: `${100 + (unitCount * 80)}px`, height: '1px' }}></div>
+                 </div>
+              </div>
             </div>
+
           </div>
         );
       };
@@ -988,49 +1023,64 @@
         );
       };
 
-      // Construct dynamic nav tabs based on loadedConfig
-      const navTabs = ['course', 'overview'];
-      if (loadedConfig && items.length > 0) {
-         navTabs.push('checklist');
-         for (let i = 1; i <= loadedConfig.numUnits; i++) {
-            navTabs.push(`u${i}`);
-         }
-      }
-
       return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
           <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
-                <h1 className="text-xl font-bold text-blue-900 flex items-center">
+                <h1 className="text-xl font-bold text-blue-900 flex items-center shrink-0">
                   <SaveIcon />
                   Curriculum Unit Planner
                 </h1>
-                <nav className="flex space-x-1 overflow-x-auto custom-scrollbar">
-                  {navTabs.map((tab) => {
-                    const isUnit = tab.startsWith('u');
-                    
-                    let label = '';
-                    if (isUnit) label = `Unit ${tab.replace('u', '')}`;
-                    else if (tab === 'course') label = 'Course Selection';
-                    else if (tab === 'overview') label = 'Curriculum Overview';
-                    else label = 'Checklist';
-                    
-                    return (
+                <nav className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handleTabClick('course')}
+                    className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
+                      ${activeTab === 'course' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
+                    `}
+                  >
+                    Course Selection
+                  </button>
+                  <button
+                    onClick={() => handleTabClick('overview')}
+                    className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
+                      ${activeTab === 'overview' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
+                    `}
+                  >
+                    Curriculum Overview
+                  </button>
+
+                  {(loadedConfig && items.length > 0) && (
+                    <>
                       <button
-                        key={tab}
-                        onClick={() => handleTabClick(tab)}
+                        onClick={() => handleTabClick('checklist')}
                         className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                          ${activeTab === tab 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'text-gray-600 hover:bg-gray-100'}
-                          cursor-pointer
+                          ${activeTab === 'checklist' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
                         `}
                       >
-                        {label}
+                        Checklist
                       </button>
-                    );
-                  })}
+
+                      {/* Dropdown Navigation mapped to active units */}
+                      <div className="relative flex items-center ml-2">
+                         <select
+                            value={activeTab.startsWith('u') ? activeTab : ''}
+                            onChange={(e) => {
+                              if (e.target.value) handleTabClick(e.target.value);
+                            }}
+                            className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-blue-50 text-blue-800 border-blue-300' : 'hover:bg-gray-50'}`}
+                         >
+                            <option value="" disabled>Select Unit Plan...</option>
+                            {Array.from({length: loadedConfig.numUnits}, (_, i) => (
+                               <option key={`opt-u${i+1}`} value={`u${i+1}`}>Unit {i+1} Overview</option>
+                            ))}
+                         </select>
+                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                         </div>
+                      </div>
+                    </>
+                  )}
                 </nav>
               </div>
             </div>
@@ -1159,21 +1209,42 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
-  
+
   <style>
-    /* Styling to ensure the top navigation doesn't hide tabs if there are up to 20 units */
-    .custom-scrollbar::-webkit-scrollbar {
-      height: 6px;
+    /* Native scrollbar blocker on the table container so we can construct a tailored UX component beneath it */
+    .hide-native-scrollbar-x::-webkit-scrollbar:horizontal {
+      height: 0px !important;
+      display: none !important;
     }
-    .custom-scrollbar::-webkit-scrollbar-track {
+    
+    .custom-scrollbar-y::-webkit-scrollbar {
+      width: 8px;
+    }
+    .custom-scrollbar-y::-webkit-scrollbar-track {
       background: #f1f1f1; 
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb {
+    .custom-scrollbar-y::-webkit-scrollbar-thumb {
       background: #cbd5e1; 
       border-radius: 4px;
     }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    .custom-scrollbar-y::-webkit-scrollbar-thumb:hover {
       background: #94a3b8; 
+    }
+    
+    /* Custom scrollbar solely for our targeted tracker */
+    .custom-scrollbar-x::-webkit-scrollbar {
+      height: 12px;
+    }
+    .custom-scrollbar-x::-webkit-scrollbar-track {
+      background: #f8fafc;
+    }
+    .custom-scrollbar-x::-webkit-scrollbar-thumb {
+      background: #94a3b8; 
+      border-radius: 6px;
+      border: 3px solid #f8fafc;
+    }
+    .custom-scrollbar-x::-webkit-scrollbar-thumb:hover {
+      background: #64748b; 
     }
   </style>
 </body>

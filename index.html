@@ -851,6 +851,26 @@
                 >
                   {saveStatus || 'Save progress'}
                 </button>
+                
+                {/* View Unit Plan Dropdown next to Save Progress */}
+                <div className="relative flex items-center">
+                   <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) handleTabClick(e.target.value);
+                      }}
+                      className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors hover:bg-gray-50"
+                   >
+                      <option value="" disabled>View Unit Plan...</option>
+                      {Array.from({length: unitCount}, (_, i) => (
+                         <option key={`chk-opt-u${i+1}`} value={`u${i+1}`}>Unit {i+1} Overview</option>
+                      ))}
+                   </select>
+                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                   </div>
+                </div>
+
                 <input 
                   type="text" 
                   placeholder="Search codes or descriptions..." 
@@ -1102,7 +1122,7 @@
                             }}
                             className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-blue-50 text-blue-800 border-blue-300' : 'hover:bg-gray-50'}`}
                          >
-                            <option value="" disabled>Select Unit Plan...</option>
+                            <option value="" disabled>View Unit Plan...</option>
                             {Array.from({length: loadedConfig.numUnits}, (_, i) => (
                                <option key={`opt-u${i+1}`} value={`u${i+1}`}>Unit {i+1} Overview</option>
                             ))}

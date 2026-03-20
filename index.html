@@ -14,6 +14,9 @@
   
   <!-- Babel to compile the React code in the browser -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- HTML to DOCX Converter -->
+  <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
   <div id="root"></div>
@@ -112,7 +115,8 @@
       };
 
       const html = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+        <!DOCTYPE html>
+        <html>
         <head>
           <meta charset='utf-8'>
           <title>${unitName} Plan Template</title>
@@ -121,14 +125,24 @@
             table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             th, td { border: 1px solid #000; padding: 12px; vertical-align: top; }
             th { background-color: #e2e8f0; text-align: left; font-size: 14pt; }
-            h1 { text-align: center; color: #1e293b; }
+            h1 { text-align: center; color: #1e293b; font-size: 18pt; margin-bottom: 20px; }
             h2 { font-size: 12pt; margin-top: 0; color: #334155; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
             ul { margin-top: 8px; padding-left: 20px; }
+            .meta-table th { background-color: #f8fafc; width: 20%; font-size: 12pt; }
+            .meta-table td { width: 80%; }
+            .instruction-text { background-color: #f8fafc; color: #475569; font-style: italic; }
           </style>
         </head>
         <body>
           <h1>Understanding by Design (UbD) Unit Plan</h1>
-          <h2 style="text-align: center; font-size: 16pt; border: none; margin-bottom: 30px;">${unitName}</h2>
+          
+          <table class="meta-table">
+            <tr><th>Title of Unit</th><td><strong>${unitName}</strong></td></tr>
+            <tr><th>Grade Level</th><td></td></tr>
+            <tr><th>Subject</th><td></td></tr>
+            <tr><th>Time Frame</th><td></td></tr>
+            <tr><th>Developed By</th><td></td></tr>
+          </table>
           
           <table>
             <tr>
@@ -169,49 +183,168 @@
           </table>
           
           <table>
-            <tr><th>Stage 2 - Assessment Evidence</th></tr>
-            <tr><td><br><br><br><br><br></td></tr>
+            <tr><th colspan="3">Stage 2 - Assessment Evidence</th></tr>
+            <tr>
+              <td colspan="3">
+                <h2>Performance Task</h2>
+                <p>Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br><br><br><br></td>
+              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br><br><br><br></td>
+            </tr>
+            <tr>
+              <td colspan="3">
+                <h2>Other Evidence</h2>
+                <p>Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br><br><br></td>
+              <td style="width: 33.33%;"><strong>Evidence</strong><br><br><br><br></td>
+              <td style="width: 33.33%;"><strong>Conversation, Observation, or Product?</strong><br><br><br><br></td>
+            </tr>
+            <tr>
+              <td colspan="3">
+                <h2>Student Self-Assessment</h2>
+                <p>How will students reflect upon or self-assess their learning?</p>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3"><br><br><br><br><br></td>
+            </tr>
           </table>
           
           <table>
-            <tr><th>Stage 3 - Learning Plan</th></tr>
-            <tr><td><br><br><br><br><br></td></tr>
+            <tr><th colspan="6">Stage 3 - Learning Plan</th></tr>
+            <tr>
+              <td colspan="6" class="instruction-text">
+                <p>What teaching and learning experiences will you use to:</p>
+                <ul>
+                  <li>achieve the desired results identified in Stage 1?</li>
+                  <li>equip students to complete the assessment tasks identified in Stage 2?</li>
+                </ul>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="6" class="instruction-text">
+                <p>Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
+                <p>What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way? What individual needs do you anticipate will need to be addressed?</p>
+                <p>Learning environment: Where can this learning best occur? How can the physical environment be arranged to enhance learning?</p>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="6"><br><br><br><br><br></td>
+            </tr>
+            <tr>
+              <td colspan="6" class="instruction-text">
+                <p>How will you engage students at the beginning of the unit?</p>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="6"><br><br><br><br><br></td>
+            </tr>
+            <tr>
+              <td colspan="6" class="instruction-text">
+                <p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p>
+              </td>
+            </tr>
+            <tr>
+              <th style="width: 5%; background-color: #e2e8f0; font-size: 11pt;">#</th>
+              <th style="width: 15%; background-color: #e2e8f0; font-size: 11pt;">Lesson Title</th>
+              <th style="width: 35%; background-color: #e2e8f0; font-size: 11pt;">Lesson Activities</th>
+              <th style="width: 15%; background-color: #e2e8f0; font-size: 11pt;">KUSPs</th>
+              <th style="width: 15%; background-color: #e2e8f0; font-size: 11pt;">Cross-curricular Competencies</th>
+              <th style="width: 15%; background-color: #e2e8f0; font-size: 11pt;">Resources</th>
+            </tr>
+            ${Array(10).fill('<tr><td><br><br></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
           </table>
         </body>
         </html>
       `;
 
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
+      // Use html-docx-js to convert the HTML string into a true .docx Blob
+      const convertedBlob = window.htmlDocx.asBlob(html);
+      const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.doc`;
+      link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.docx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     };
 
+    // --- Components ---
+    const AccordionItem = ({ title, children }) => {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <div className="border border-gray-200 rounded-md overflow-hidden bg-white mb-3 shadow-sm">
+          <button
+            className="w-full text-left px-5 py-4 bg-gray-50 hover:bg-gray-100 flex justify-between items-center focus:outline-none transition-colors"
+            onClick={() => setIsOpen(!isOpen)}
+          >
+            <span className="font-bold text-gray-800 text-base">{title}</span>
+            <svg 
+              className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isOpen && (
+            <div className="px-5 py-4 text-gray-700 text-sm md:text-base leading-relaxed border-t border-gray-200 bg-white">
+              {children}
+            </div>
+          )}
+        </div>
+      );
+    };
+
     // --- Icons ---
-    const UploadIcon = () => <svg className="w-12 h-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>;
     const DownloadIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
     const CheckCircleIcon = () => <svg className="w-6 h-6 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const SaveIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
+    const WarningIcon = () => <svg className="w-6 h-6 text-yellow-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
+    const InfoIcon = () => <svg className="w-6 h-6 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const BookIcon = () => <svg className="w-6 h-6 text-purple-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
+    const LightbulbIcon = () => <svg className="w-6 h-6 text-yellow-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
+    const DatabaseIcon = () => <svg className="w-12 h-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
 
     // --- Main Application Component ---
     function App() {
       const [items, setItems] = useState([]);
-      const [activeTab, setActiveTab] = useState('import');
+      const [activeTab, setActiveTab] = useState('course');
       const [searchTerm, setSearchTerm] = useState('');
       const [saveStatus, setSaveStatus] = useState('');
+      
+      // Course Selection Config
+      const [appConfig, setAppConfig] = useState({ grade: '7', subject: 'Social Studies', numUnits: 5 });
+      const [loadedConfig, setLoadedConfig] = useState(null); // Tracks the currently active/loaded config
+      const [loadingData, setLoadingData] = useState(false);
+      const [loadError, setLoadError] = useState('');
+      
+      // Modals State
       const [showResetConfirm, setShowResetConfirm] = useState(false);
+      const [showSavePrompt, setShowSavePrompt] = useState(false);
+      const [showCourseConfirm, setShowCourseConfirm] = useState(false);
+      const [pendingTab, setPendingTab] = useState(null);
 
       // Automatically load saved data when returning to the page
       useEffect(() => {
         const savedData = localStorage.getItem('curriculumPlannerData');
         if (savedData) {
           try {
-            setItems(JSON.parse(savedData));
-            setActiveTab('checklist');
+            const parsed = JSON.parse(savedData);
+            if (parsed.items && parsed.loadedConfig) {
+              setItems(parsed.items);
+              setLoadedConfig(parsed.loadedConfig);
+              setAppConfig(parsed.loadedConfig);
+              setActiveTab('checklist');
+            } else if (Array.isArray(parsed)) {
+              // Legacy support: flush if it's the old raw array style format
+              localStorage.removeItem('curriculumPlannerData');
+            }
           } catch (e) {
             console.error("Error loading saved data", e);
           }
@@ -219,46 +352,80 @@
       }, []);
 
       const handleSaveProgress = () => {
-        localStorage.setItem('curriculumPlannerData', JSON.stringify(items));
+        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items, loadedConfig }));
         setSaveStatus('Saved!');
         setTimeout(() => setSaveStatus(''), 2000); // Reverts text back after 2 seconds
       };
 
       const handleReset = () => {
-        // Clear all Unit 1-5 selections
-        setItems(items.map(item => ({ ...item, u1: false, u2: false, u3: false, u4: false, u5: false })));
-        // Wipe from browser memory as well
-        localStorage.removeItem('curriculumPlannerData');
+        if (!loadedConfig) return;
+        // Clear all selected units
+        const clearedItems = items.map(item => {
+          const newItem = { ...item };
+          for(let i = 1; i <= loadedConfig.numUnits; i++) {
+            newItem[`u${i}`] = false;
+          }
+          return newItem;
+        });
+        setItems(clearedItems);
+        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items: clearedItems, loadedConfig }));
         setShowResetConfirm(false);
       };
 
-      const handleFileUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+      // Executes the fetch for the selected CSV file
+      const executeLoadCourse = async () => {
+        setShowCourseConfirm(false);
+        setLoadingData(true);
+        setLoadError('');
         
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const text = evt.target.result;
+        const subjectMap = {
+          'Math': 'math',
+          'Social Studies': 'social-studies',
+          'Physical Education and Wellness': 'pew',
+          'Career Education and Financial Literacy': 'cefl'
+        };
+        
+        const fileName = `${appConfig.grade}_${subjectMap[appConfig.subject]}.csv`;
+        
+        try {
+          const res = await fetch(fileName);
+          if (!res.ok) {
+             throw new Error(`Could not find file: ${fileName}. Please ensure it is saved in the same directory as this index file.`);
+          }
+          const text = await res.text();
           const parsed = parseCSV(text);
           
-          // Assume the first row is headers, mapping subsequent valid rows
+          // Map data and inject 'false' for all requested dynamic units
           const data = parsed.slice(1)
             .filter(r => r.length > 1 && r[0])
-            .map((r, index) => ({
-              id: index,
-              code: r[0],
-              desc: r[1] ? r[1].replace(/\n/g, ' ') : '',
-              u1: r[2] ? r[2].toLowerCase() === 'true' : false,
-              u2: r[3] ? r[3].toLowerCase() === 'true' : false,
-              u3: r[4] ? r[4].toLowerCase() === 'true' : false,
-              u4: r[5] ? r[5].toLowerCase() === 'true' : false,
-              u5: r[6] ? r[6].toLowerCase() === 'true' : false,
-            }));
-          
+            .map((r, index) => {
+              const item = {
+                id: index,
+                code: r[0],
+                desc: r[1] ? r[1].replace(/\n/g, ' ') : ''
+              };
+              for(let i = 1; i <= appConfig.numUnits; i++) {
+                item[`u${i}`] = false;
+              }
+              return item;
+            });
+            
           setItems(data);
+          setLoadedConfig(appConfig);
           setActiveTab('checklist');
-        };
-        reader.readAsText(file);
+        } catch(err) {
+          setLoadError(err.message);
+        } finally {
+          setLoadingData(false);
+        }
+      };
+
+      const handleLoadClick = () => {
+        if (items.length > 0) {
+           setShowCourseConfirm(true);
+        } else {
+           executeLoadCourse();
+        }
       };
 
       const toggleUnit = (id, unitField) => {
@@ -270,27 +437,57 @@
         const cat = getCategory(code);
         
         let partnerMatchFn = null;
+        let parentMatchFns = [];
         
         // If a base LO or GQ is toggled, dynamically link its counterpart
         const numMatch = code.match(/(?:LO|GQ)\.(\d+)/);
         if (numMatch && (cat === 'goals' || cat === 'questions')) {
            const num = numMatch[1];
            if (cat === 'goals') {
-              partnerMatchFn = (i) => getCategory(i.code) === 'questions' && i.code.includes(`GQ.${num}`);
+              const regex = new RegExp(`(?:^|\\.)GQ\\.${num}(?:$|\\.)`);
+              partnerMatchFn = (i) => getCategory(i.code) === 'questions' && regex.test(i.code);
            } else {
-              partnerMatchFn = (i) => getCategory(i.code) === 'goals' && i.code.includes(`LO.${num}`);
+              const regex = new RegExp(`(?:^|\\.)LO\\.${num}(?:$|\\.)`);
+              partnerMatchFn = (i) => getCategory(i.code) === 'goals' && regex.test(i.code);
+           }
+        }
+
+        // If a U, K, or SP is selected, auto-select its corresponding OI, LO, and GQ
+        const isChild = cat === 'understandings' || cat === 'knows' || cat === 'skills';
+        if (newState === true && isChild) {
+           const oiMatch = code.match(/OI\.(\d+)/);
+           const loMatch = code.match(/LO\.(\d+)/);
+           
+           if (oiMatch) {
+              const oiRegex = new RegExp(`(?:^|\\.)OI\\.${oiMatch[1]}(?:$|\\.)`);
+              parentMatchFns.push((i) => oiRegex.test(i.code) && getCategory(i.code) === 'other');
+           }
+           if (loMatch) {
+              const loRegex = new RegExp(`(?:^|\\.)LO\\.${loMatch[1]}(?:$|\\.)`);
+              const gqRegex = new RegExp(`(?:^|\\.)GQ\\.${loMatch[1]}(?:$|\\.)`);
+              parentMatchFns.push((i) => loRegex.test(i.code) && getCategory(i.code) === 'goals');
+              parentMatchFns.push((i) => gqRegex.test(i.code) && getCategory(i.code) === 'questions');
            }
         }
 
         setItems(prevItems => prevItems.map(item => {
+          let updatedItem = { ...item };
+          let changed = false;
+
           if (item.id === id) {
-            return { ...item, [unitField]: newState };
+            updatedItem[unitField] = newState;
+            changed = true;
+          } else if (partnerMatchFn && partnerMatchFn(item)) {
+            updatedItem[unitField] = newState;
+            changed = true;
           }
-          // Sync the corresponding LO or GQ
-          if (partnerMatchFn && partnerMatchFn(item)) {
-            return { ...item, [unitField]: newState };
+          
+          if (newState === true && parentMatchFns.some(fn => fn(item))) {
+            updatedItem[unitField] = true;
+            changed = true;
           }
-          return item;
+
+          return changed ? updatedItem : item;
         }));
       };
 
@@ -325,6 +522,22 @@
         }
       };
 
+      // Safely navigate tabs checking for unsaved changes
+      const handleTabClick = (tab) => {
+        if (activeTab === 'checklist' && tab !== 'checklist') {
+          const savedData = localStorage.getItem('curriculumPlannerData');
+          const currentData = JSON.stringify({ items, loadedConfig });
+          
+          // Trigger save prompt if there is data, and it differs from what was last saved to localStorage
+          if (items.length > 0 && savedData !== currentData) {
+            setPendingTab(tab);
+            setShowSavePrompt(true);
+            return;
+          }
+        }
+        setActiveTab(tab);
+      };
+
       const filteredItems = useMemo(() => {
         if (!searchTerm) return items;
         return items.filter(item => 
@@ -334,111 +547,368 @@
       }, [items, searchTerm]);
 
       // View Components
-      const renderImport = () => (
-        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-lg shadow-sm border border-gray-200">
-          <UploadIcon />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Upload Curriculum CSV</h2>
-          <p className="text-gray-500 mb-6 max-w-md text-center">
-            Please upload your <strong>MAIN.csv</strong> file containing the Code, Description, and Unit columns to begin planning.
+      const renderCourseSelection = () => (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg shadow-sm border border-gray-200">
+          <DatabaseIcon />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Course Selection</h2>
+          <p className="text-gray-500 mb-8 max-w-md text-center text-sm">
+            Select your target grade, subject, and the total number of units you plan to evaluate. 
+            The system will automatically load the appropriate curriculum package.
           </p>
-          <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors">
-            <span>Select CSV File</span>
-            <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
-          </label>
+          
+          <div className="w-full max-w-md space-y-5 px-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
+              <select 
+                value={appConfig.grade} 
+                onChange={e => setAppConfig({...appConfig, grade: e.target.value})}
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+              >
+                <option value="7">Grade 7</option>
+                <option value="8">Grade 8</option>
+                <option value="9">Grade 9</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Subject</label>
+              <select 
+                value={appConfig.subject} 
+                onChange={e => setAppConfig({...appConfig, subject: e.target.value})}
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+              >
+                <option value="Social Studies">Social Studies</option>
+                <option value="Math">Math</option>
+                <option value="Physical Education and Wellness">Physical Education and Wellness</option>
+                <option value="Career Education and Financial Literacy">Career Education and Financial Literacy</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Number of Units</label>
+              <select 
+                value={appConfig.numUnits} 
+                onChange={e => setAppConfig({...appConfig, numUnits: parseInt(e.target.value)})}
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+              >
+                {Array.from({length: 19}, (_, i) => i + 2).map(num => (
+                  <option key={num} value={num}>{num} Units</option>
+                ))}
+              </select>
+            </div>
+            
+            {loadError && (
+              <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-md text-sm mt-4">
+                <strong>Error:</strong> {loadError}
+              </div>
+            )}
+
+            <button 
+              onClick={handleLoadClick}
+              disabled={loadingData}
+              className={`w-full mt-6 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all ${loadingData ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {loadingData ? 'Loading Data...' : 'Load Course Data'}
+            </button>
+          </div>
         </div>
       );
 
-      const renderChecklist = () => (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '70vh' }}>
-          <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h2 className="text-lg font-bold text-gray-800">Master Checklist ({filteredItems.length} items)</h2>
-            <div className="flex items-center space-x-3">
-              <button 
-                onClick={() => setShowResetConfirm(true)}
-                className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-100 transition-colors"
-              >
-                Reset Checklist
-              </button>
-              <button 
-                onClick={handleSaveProgress}
-                className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
-              >
-                {saveStatus || 'Save progress'}
-              </button>
-              <input 
-                type="text" 
-                placeholder="Search codes or descriptions..." 
-                className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+      const renderOverview = () => (
+        <div className="max-w-5xl mx-auto space-y-8 pb-10">
+          
+          {/* Curriculum Architecture Section */}
+          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <BookIcon />
+              <h2 className="text-2xl font-bold text-gray-900 ml-3">Curriculum Architecture Guide</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-8 text-sm md:text-base leading-relaxed">
+              The Guiding Framework outlines a clear, logical structure for educational development. Familiarize yourself with these core elements to construct effective units and ensure alignment with provincial standards.
+            </p>
+
+            <div className="space-y-6">
+              {/* Core Ideas */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-md">
+                  <h3 className="font-bold text-green-900 text-lg mb-1 flex items-center">
+                    <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded mr-2 uppercase">OI</span> 
+                    Organizing Idea
+                  </h3>
+                  <p className="text-sm text-green-800 leading-snug">A foundational statement that connects learning outcomes to the central, core concepts of the subject area. It organizes the learning overarching the entire unit.</p>
+                </div>
+
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+                  <h3 className="font-bold text-blue-900 text-lg mb-1 flex items-center">
+                    <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded mr-2 uppercase">GQ</span> 
+                    Guiding Question
+                  </h3>
+                  <p className="text-sm text-blue-800 leading-snug">An open-ended question that frames the Organizing Idea. It is designed to inspire student exploration, inquiry, and critical thinking throughout the unit.</p>
+                </div>
+              </div>
+
+              {/* Learning Outcomes */}
+              <div className="bg-gray-50 border border-gray-200 p-5 rounded-md">
+                <h3 className="font-bold text-gray-900 text-lg mb-2 flex items-center">
+                  <span className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-2 uppercase">LO</span> 
+                  Learning Outcome
+                </h3>
+                <p className="text-sm text-gray-700 leading-snug">A clear, observable statement describing what students are expected to know, understand, and be able to do by the end of a specific grade or unit.</p>
+              </div>
+
+              {/* Pillars of the Outcome */}
+              <div className="grid md:grid-cols-3 gap-6 pt-2">
+                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                    <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mr-2 uppercase">U</span> Understandings
+                  </h4>
+                  <p className="text-sm text-gray-600">Concepts, themes, and big-picture relationships. These define the deeper meaning that students should comprehend and internalize.</p>
+                </div>
+                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded mr-2 uppercase">K</span> Knowledge
+                  </h4>
+                  <p className="text-sm text-gray-600">The specific facts, terminology, core concepts, and foundational information that students must actively acquire.</p>
+                </div>
+                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
+                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                    <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded mr-2 uppercase">SP</span> Skills & Procedures
+                  </h4>
+                  <p className="text-sm text-gray-600">The specific actions, processes, and competencies students must develop to demonstrate and apply their knowledge and understandings.</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="overflow-auto flex-1 relative">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100 sticky top-0 shadow-sm z-10">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Description</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Use Count</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 1</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 2</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 3</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 4</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit 5</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredItems.map((item) => {
-                  // Bold logic: anything without U, K, or SP
-                  const parts = item.code.toUpperCase().split('.');
-                  const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
-                  const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
-                  const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
-                  
-                  const isBold = !(hasU || hasK || hasSP);
-                  const textWeightClass = isBold ? 'font-bold text-gray-900' : 'font-normal text-gray-800';
 
-                  // Row background shading logic utilizing the consolidated mapper
-                  const bgClass = getCodeBgColor(item.code, true);
+          {/* Language Conventions Section */}
+          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <InfoIcon />
+              <h2 className="text-2xl font-bold text-gray-900 ml-3">Language Conventions</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
+              When reading the curriculum checklist, the specific terminology used by Alberta Education dictates how the content must be implemented in your classroom. Please reference these rules when planning:
+            </p>
 
-                  // Use Count logic
-                  const useCount = [item.u1, item.u2, item.u3, item.u4, item.u5].filter(Boolean).length;
-                  const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
+            <div className="space-y-4">
+              <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
+                <div className="bg-red-100 text-red-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-red-200">
+                  including / include(s)
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-gray-900 text-sm">Mandatory Requirement</h4>
+                  <p className="text-sm text-gray-600 mt-1">Content following "including" or "include(s)" is a <strong className="text-gray-800">required component</strong> that must be explicitly addressed to achieve the learning outcome.</p>
+                </div>
+              </div>
 
-                  // Display code (only last 4 chars)
-                  const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+              <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-blue-200">
+                  such as / e.g. / for example
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-gray-900 text-sm">Optional Illustration</h4>
+                  <p className="text-sm text-gray-600 mt-1">Content following these phrases contains <strong className="text-gray-800">optional illustrative examples</strong>. They are provided to support understanding but do not legally have to be taught.</p>
+                </div>
+              </div>
 
-                  return (
-                    <tr id={`row-${item.id}`} key={item.id} className={`transition-colors border-b border-gray-200 ${bgClass}`}>
-                      <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{displayCode}</td>
-                      <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{item.desc}</td>
-                      <td className={`px-4 py-4 whitespace-nowrap text-center align-top font-bold text-lg ${useCountColor}`}>{useCount}</td>
-                      {['u1', 'u2', 'u3', 'u4', 'u5'].map((u) => (
-                        <td key={u} className="px-4 py-4 whitespace-nowrap text-center align-top">
-                          <input
-                            type="checkbox"
-                            className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
-                            checked={item[u]}
-                            onChange={() => toggleUnit(item.id, u)}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
-                {filteredItems.length === 0 && (
-                  <tr>
-                    <td colSpan="8" className="px-6 py-8 text-center text-gray-500 bg-white">
-                      No items found matching your search.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+              <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
+                <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-gray-300">
+                  ( parentheses )
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-gray-900 text-sm">Contextual Guidance</h4>
+                  <p className="text-sm text-gray-600 mt-1">Content in parentheses is <strong className="text-gray-800">subject-specific information for teachers and parents</strong>, which immediately follows an associated age-appropriate term intended for the students.</p>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Guiding Principles Section (Using Accordions) */}
+          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <LightbulbIcon />
+              <h2 className="text-2xl font-bold text-gray-900 ml-3">Guiding Principles & Contexts</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
+              Click on the sections below to explore additional key contexts and frameworks embedded throughout the provincial curriculum.
+            </p>
+
+            <div>
+              <AccordionItem title="What to Teach, Not How to Teach">
+                <p className="mb-3">The curriculum is inherently designed to prescribe <strong>what</strong> students are expected to learn—the explicit knowledge, understandings, and skills defined within the learning outcomes.</p>
+                <p>However, it respects and relies upon teacher autonomy regarding <strong>how</strong> to teach. Educators are empowered to use their professional judgment to select the instructional methods, pedagogical strategies, resources, and learning activities that best meet the diverse needs of the students in their classrooms.</p>
+              </AccordionItem>
+
+              <AccordionItem title="Pluralism">
+                <p className="mb-3">Alberta's curriculum is built on a foundation of pluralism, recognizing, respecting, and celebrating the diverse cultural, linguistic, and ethnic backgrounds that form our society.</p>
+                <p>Incorporating pluralism ensures that students see themselves reflected in their learning while simultaneously developing a deep appreciation for the varied histories, contributions, and viewpoints of others. It helps build a cohesive society grounded in mutual respect and understanding.</p>
+              </AccordionItem>
+
+              <AccordionItem title="Inclusion">
+                <p className="mb-3">Inclusive education means ensuring that all students, regardless of their background, ability, or learning profile, can meaningfully participate and succeed in the classroom.</p>
+                <p>The curriculum is designed with flexibility in mind, allowing teachers to anticipate diverse learning needs and provide multiple pathways to achieve the learning outcomes. Inclusion focuses on removing barriers so every student experiences a sense of belonging and academic achievement.</p>
+              </AccordionItem>
+
+              <AccordionItem title="First Nations, Métis, and Inuit Experiences and Perspectives">
+                <p className="mb-3">The curriculum is committed to authentically embedding the historical and contemporary experiences, perspectives, and knowledge systems of First Nations, Métis, and Inuit peoples across various subjects.</p>
+                <p>This includes foundational learning about the history and legacy of residential schools, the significance of treaties, and the enduring cultural contributions of Indigenous peoples. Doing so fosters truth, reconciliation, and a shared understanding of our history.</p>
+              </AccordionItem>
+
+              <AccordionItem title="Francophone Perspectives">
+                <p className="mb-3">Acknowledging the bilingual nature of Canada and the foundational role of Francophones in shaping our province and country, the curriculum integrates Francophone history, culture, and perspectives.</p>
+                <p>By exploring these perspectives across subjects, students gain a richer understanding of Alberta's heritage, the contributions of Francophone communities, and the ongoing importance of the French language in Canada.</p>
+              </AccordionItem>
+
+              <AccordionItem title="Literacy and Numeracy">
+                <p className="mb-3">Literacy and numeracy are the foundational building blocks of all learning and are not confined solely to Language Arts or Mathematics. They are actively integrated across all subject areas.</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Literacy</strong> involves acquiring, creating, connecting, and communicating meaning through a variety of contexts, including digital and physical texts.</li>
+                  <li><strong>Numeracy</strong> involves the confidence and habit of applying mathematical understanding to solve problems in everyday life, work, and society.</li>
+                </ul>
+              </AccordionItem>
+
+              <AccordionItem title="Competencies">
+                <p className="mb-4">Competencies are combinations of knowledge, skills, and attitudes that students develop and apply for successful learning, living, and working. They are not taught in isolation; rather, they are interwoven and embedded directly within the learning outcomes across all subject areas.</p>
+                <p className="mb-4 text-gray-800 font-semibold">The Guiding Framework identifies the following core competencies:</p>
+                
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Critical Thinking</strong>
+                    <span className="text-sm text-gray-600">Conceptualizing, applying, analyzing, synthesizing, and evaluating information to construct knowledge and explore complex issues.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Problem Solving</strong>
+                    <span className="text-sm text-gray-600">Selecting and applying strategies to address challenges, find solutions, and investigate complex questions.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Managing Information</strong>
+                    <span className="text-sm text-gray-600">Accessing, interpreting, evaluating, and using information effectively, efficiently, and ethically from a variety of sources.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Creativity and Innovation</strong>
+                    <span className="text-sm text-gray-600">Generating, developing, and applying novel ideas to create something of value or solve unique problems.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Communication</strong>
+                    <span className="text-sm text-gray-600">Sharing ideas and understandings clearly through oral, written, visual, or non-verbal media across various contexts.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Collaboration</strong>
+                    <span className="text-sm text-gray-600">Working cooperatively with others to achieve common goals, while respecting diverse viewpoints and contributions.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Cultural and Global Citizenship</strong>
+                    <span className="text-sm text-gray-600">Engaging actively, ethically, and responsibly as members of diverse local, national, and global communities.</span>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <strong className="text-gray-900 block mb-1">Personal Growth and Well-being</strong>
+                    <span className="text-sm text-gray-600">Building resilience, demonstrating healthy choices, managing relationships, and pursuing personal development.</span>
+                  </div>
+                </div>
+              </AccordionItem>
+            </div>
+          </div>
+
         </div>
       );
+
+      const renderChecklist = () => {
+        const unitCount = loadedConfig ? loadedConfig.numUnits : 0;
+        
+        return (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '70vh' }}>
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-gray-800">Master Checklist ({filteredItems.length} items)</h2>
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => setShowResetConfirm(true)}
+                  className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-100 transition-colors"
+                >
+                  Reset Checklist
+                </button>
+                <button 
+                  onClick={handleSaveProgress}
+                  className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
+                >
+                  {saveStatus || 'Save progress'}
+                </button>
+                <input 
+                  type="text" 
+                  placeholder="Search codes or descriptions..." 
+                  className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="overflow-x-auto overflow-y-auto flex-1 relative">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100 sticky top-0 shadow-sm z-10">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Code</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px]">Description</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Use Count</th>
+                    {/* Render dynamic unit headers */}
+                    {Array.from({length: unitCount}, (_, i) => (
+                       <th key={`th-u${i+1}`} className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">Unit {i+1}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredItems.map((item) => {
+                    const parts = item.code.toUpperCase().split('.');
+                    const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
+                    const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
+                    const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
+                    
+                    const isBold = !(hasU || hasK || hasSP);
+                    const textWeightClass = isBold ? 'font-bold text-gray-900' : 'font-normal text-gray-800';
+
+                    const bgClass = getCodeBgColor(item.code, true);
+
+                    const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
+                    const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
+
+                    const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+
+                    return (
+                      <tr id={`row-${item.id}`} key={item.id} className={`transition-colors border-b border-gray-200 ${bgClass}`}>
+                        <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{displayCode}</td>
+                        <td className={`px-6 py-4 text-sm break-words align-top ${textWeightClass}`}>{item.desc}</td>
+                        <td className={`px-4 py-4 whitespace-nowrap text-center align-top font-bold text-lg ${useCountColor}`}>{useCount}</td>
+                        {/* Render dynamic unit checkboxes */}
+                        {Array.from({length: unitCount}, (_, i) => {
+                          const uField = `u${i+1}`;
+                          return (
+                            <td key={uField} className="px-4 py-4 whitespace-nowrap text-center align-top">
+                              <input
+                                type="checkbox"
+                                className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
+                                checked={item[uField]}
+                                onChange={() => toggleUnit(item.id, uField)}
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                  {filteredItems.length === 0 && (
+                    <tr>
+                      <td colSpan={3 + unitCount} className="px-6 py-8 text-center text-gray-500 bg-white">
+                        No items found matching your search.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      };
 
       const renderUnitView = (unitNum) => {
         const unitField = `u${unitNum}`;
@@ -518,6 +988,15 @@
         );
       };
 
+      // Construct dynamic nav tabs based on loadedConfig
+      const navTabs = ['course', 'overview'];
+      if (loadedConfig && items.length > 0) {
+         navTabs.push('checklist');
+         for (let i = 1; i <= loadedConfig.numUnits; i++) {
+            navTabs.push(`u${i}`);
+         }
+      }
+
       return (
         <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
           <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
@@ -527,22 +1006,25 @@
                   <SaveIcon />
                   Curriculum Unit Planner
                 </h1>
-                <nav className="flex space-x-1">
-                  {['import', 'checklist', 'u1', 'u2', 'u3', 'u4', 'u5'].map((tab) => {
+                <nav className="flex space-x-1 overflow-x-auto custom-scrollbar">
+                  {navTabs.map((tab) => {
                     const isUnit = tab.startsWith('u');
-                    const label = isUnit ? `Unit ${tab.replace('u', '')}` : (tab === 'import' ? 'Data Import' : 'MAIN Checklist');
-                    const isDisabled = items.length === 0 && tab !== 'import';
+                    
+                    let label = '';
+                    if (isUnit) label = `Unit ${tab.replace('u', '')}`;
+                    else if (tab === 'course') label = 'Course Selection';
+                    else if (tab === 'overview') label = 'Curriculum Overview';
+                    else label = 'MAIN Checklist';
                     
                     return (
                       <button
                         key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        disabled={isDisabled}
-                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors
+                        onClick={() => handleTabClick(tab)}
+                        className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
                           ${activeTab === tab 
                             ? 'bg-blue-100 text-blue-800' 
                             : 'text-gray-600 hover:bg-gray-100'}
-                          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                          cursor-pointer
                         `}
                       >
                         {label}
@@ -556,7 +1038,7 @@
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Color Legend displayed globally when data is loaded */}
-            {items.length > 0 && activeTab !== 'import' && (
+            {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && (
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm select-none">
                 <strong className="text-gray-800 uppercase tracking-wide text-xs">Color Legend:</strong>
                 <div onClick={() => scrollToGroup('OI')} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title="Click to scroll to OI"><span className="w-4 h-4 rounded bg-green-100 border border-green-300 mr-2"></span> Organizing Ideas (OI)</div>
@@ -568,14 +1050,84 @@
               </div>
             )}
 
-            {activeTab === 'import' && renderImport()}
+            {activeTab === 'course' && renderCourseSelection()}
+            {activeTab === 'overview' && renderOverview()}
             {activeTab === 'checklist' && items.length > 0 && renderChecklist()}
-            {activeTab === 'u1' && items.length > 0 && renderUnitView(1)}
-            {activeTab === 'u2' && items.length > 0 && renderUnitView(2)}
-            {activeTab === 'u3' && items.length > 0 && renderUnitView(3)}
-            {activeTab === 'u4' && items.length > 0 && renderUnitView(4)}
-            {activeTab === 'u5' && items.length > 0 && renderUnitView(5)}
+            
+            {/* Render dynamic unit views */}
+            {loadedConfig && Array.from({length: loadedConfig.numUnits}, (_, i) => i + 1).map(num => (
+               activeTab === `u${num}` && items.length > 0 && <div key={`unit-${num}`}>{renderUnitView(num)}</div>
+            ))}
           </main>
+
+          {/* Load New Course Confirmation Modal */}
+          {showCourseConfirm && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                <div className="flex items-center mb-2">
+                  <WarningIcon />
+                  <h3 className="text-xl font-bold text-gray-900">Are you sure?</h3>
+                </div>
+                <p className="text-gray-600 mb-6">Loading a new course will discard all your current unit checklist selections. Proceed?</p>
+                <div className="flex justify-end space-x-3">
+                  <button 
+                    onClick={() => setShowCourseConfirm(false)} 
+                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={executeLoadCourse} 
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Load New Course
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Unsaved Progress Modal */}
+          {showSavePrompt && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+              <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                <div className="flex items-center mb-4">
+                  <WarningIcon />
+                  <h3 className="text-xl font-bold text-gray-900">Unsaved Changes</h3>
+                </div>
+                <p className="text-gray-600 mb-6">You have made changes to the checklist that haven't been saved. Would you like to save your progress before navigating away?</p>
+                <div className="flex justify-end space-x-3">
+                  <button 
+                    onClick={() => { setShowSavePrompt(false); setPendingTab(null); }} 
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setActiveTab(pendingTab);
+                      setShowSavePrompt(false);
+                      setPendingTab(null);
+                    }} 
+                    className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-md font-medium hover:bg-red-50 transition-colors"
+                  >
+                    Leave Without Saving
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleSaveProgress();
+                      setActiveTab(pendingTab);
+                      setShowSavePrompt(false);
+                      setPendingTab(null);
+                    }} 
+                    className="px-4 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Save & Continue
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Reset Confirmation Modal */}
           {showResetConfirm && (
@@ -607,5 +1159,22 @@
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
+  
+  <style>
+    /* Styling to ensure the top navigation doesn't hide tabs if there are up to 20 units */
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1; 
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1; 
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8; 
+    }
+  </style>
 </body>
 </html>

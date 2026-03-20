@@ -7,6 +7,19 @@
   
   <!-- Tailwind CSS for styling -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'eips-green': '#00957E',
+            'eips-lime': '#A4D55F',
+            'eips-orange': '#FF6B00'
+          }
+        }
+      }
+    }
+  </script>
   
   <!-- React and ReactDOM for the interface -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -325,13 +338,13 @@
 
     // --- Icons ---
     const DownloadIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
-    const CheckCircleIcon = () => <svg className="w-6 h-6 text-green-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const CheckCircleIcon = () => <svg className="w-6 h-6 text-eips-green flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const SaveIcon = () => <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
-    const WarningIcon = () => <svg className="w-6 h-6 text-yellow-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
-    const InfoIcon = () => <svg className="w-6 h-6 text-blue-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-    const BookIcon = () => <svg className="w-6 h-6 text-purple-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
-    const LightbulbIcon = () => <svg className="w-6 h-6 text-yellow-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
-    const DatabaseIcon = () => <svg className="w-12 h-12 text-blue-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
+    const WarningIcon = () => <svg className="w-6 h-6 text-eips-orange mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>;
+    const InfoIcon = () => <svg className="w-6 h-6 text-eips-lime mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const BookIcon = () => <svg className="w-6 h-6 text-eips-green mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
+    const LightbulbIcon = () => <svg className="w-6 h-6 text-eips-orange mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
+    const DatabaseIcon = () => <svg className="w-12 h-12 text-eips-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
 
     // --- Main Application Component ---
     function App() {
@@ -605,7 +618,7 @@
               <select 
                 value={appConfig.grade} 
                 onChange={e => setAppConfig({...appConfig, grade: e.target.value})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
               >
                 <option value="7">Grade 7</option>
                 <option value="8">Grade 8</option>
@@ -618,7 +631,7 @@
               <select 
                 value={appConfig.subject} 
                 onChange={e => setAppConfig({...appConfig, subject: e.target.value})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
               >
                 <option value="Social Studies">Social Studies</option>
                 <option value="Math">Math</option>
@@ -632,7 +645,7 @@
               <select 
                 value={appConfig.numUnits} 
                 onChange={e => setAppConfig({...appConfig, numUnits: parseInt(e.target.value)})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 text-gray-900 cursor-pointer"
+                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
               >
                 {Array.from({length: 19}, (_, i) => i + 2).map(num => (
                   <option key={num} value={num}>{num} Units</option>
@@ -649,7 +662,7 @@
             <button 
               onClick={handleLoadClick}
               disabled={loadingData}
-              className={`w-full mt-6 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all ${loadingData ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+              className={`w-full mt-6 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all ${loadingData ? 'bg-eips-green/50 cursor-not-allowed' : 'bg-eips-green hover:bg-opacity-90'}`}
             >
               {loadingData ? 'Loading Data...' : 'Load Course Data'}
             </button>
@@ -868,20 +881,20 @@
               <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => setShowInstructions(!showInstructions)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-colors ${showInstructions ? 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-colors ${showInstructions ? 'bg-eips-green/10 text-eips-green border-eips-green/30 hover:bg-eips-green/20' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
                 >
                   <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   {showInstructions ? 'Hide Instructions' : 'Instructions'}
                 </button>
                 <button 
                   onClick={() => setShowResetConfirm(true)}
-                  className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-medium hover:bg-red-100 transition-colors"
+                  className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors"
                 >
                   Reset Checklist
                 </button>
                 <button 
                   onClick={handleSaveProgress}
-                  className="px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
+                  className="px-4 py-2 bg-eips-green text-white border border-transparent rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm"
                 >
                   {saveStatus || 'Save Progress'}
                 </button>
@@ -893,7 +906,7 @@
                       onChange={(e) => {
                         if (e.target.value) handleTabClick(e.target.value);
                       }}
-                      className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors hover:bg-gray-50"
+                      className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors hover:bg-gray-50"
                    >
                       <option value="" disabled>View Unit Plan...</option>
                       {Array.from({length: unitCount}, (_, i) => (
@@ -908,7 +921,7 @@
                 <input 
                   type="text" 
                   placeholder="Search codes or descriptions..." 
-                  className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -917,21 +930,21 @@
 
             {/* Collapsible Instructions Banner */}
             {showInstructions && (
-              <div className="bg-blue-50 border-b border-blue-100 px-6 py-4 shrink-0 relative z-40 flex justify-between items-start">
+              <div className="bg-eips-green/5 border-b border-eips-green/20 px-6 py-4 shrink-0 relative z-40 flex justify-between items-start">
                 <div>
-                  <h3 className="font-bold text-blue-900 text-sm mb-2 flex items-center">
-                    <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <h3 className="font-bold text-eips-green text-sm mb-2 flex items-center">
+                    <svg className="w-5 h-5 text-eips-green mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     How to use this checklist:
                   </h3>
-                  <ul className="list-disc pl-7 text-sm text-blue-800 space-y-1.5 marker:text-blue-500">
+                  <ul className="list-disc pl-7 text-sm text-gray-700 space-y-1.5 marker:text-eips-green">
                     <li><strong>Map Curriculum:</strong> Check boxes to assign items to specific units. Selecting a specific understanding (U), knowledge (K), or skill (SP) will automatically check its parent Learning Outcome and Guiding Question.</li>
                     <li><strong>Track Coverage:</strong> The <em>Use Count</em> column shows a red '0' for unassigned items. Your goal is to ensure every item turns green by the end of the year.</li>
-                    <li><strong>Generate Plans:</strong> When ready, use the <em>Select Unit Plan...</em> dropdown in the top navigation bar to review your assembled units and download your pre-formatted Word Document template.</li>
+                    <li><strong>Generate Plans:</strong> When ready, use the <em>View Unit Plan...</em> dropdown in the top navigation bar to review your assembled units and download your pre-formatted Word Document template.</li>
                   </ul>
                 </div>
                 <button 
                   onClick={() => setShowInstructions(false)} 
-                  className="text-blue-400 hover:text-blue-700 transition-colors p-1"
+                  className="text-gray-400 hover:text-eips-green transition-colors p-1"
                   title="Dismiss Instructions"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -990,7 +1003,7 @@
                               <td key={uField} className="px-4 py-4 whitespace-nowrap text-center align-top w-[80px] min-w-[80px]">
                                 <input
                                   type="checkbox"
-                                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-400 rounded cursor-pointer"
+                                  className="h-5 w-5 text-eips-green focus:ring-eips-green border-gray-400 rounded cursor-pointer"
                                   checked={item[uField]}
                                   onChange={() => toggleUnit(item.id, uField)}
                                 />
@@ -1081,7 +1094,7 @@
               <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => handleTabClick('checklist')}
-                  className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-50 transition-all"
+                  className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-all"
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                   Back to Checklist
@@ -1091,7 +1104,7 @@
                   disabled={unitItems.length === 0}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
                     ${unitItems.length > 0 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      ? 'bg-eips-green hover:bg-opacity-90 text-white' 
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 >
                   <DownloadIcon />
@@ -1123,15 +1136,15 @@
           <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between h-16 items-center">
-                <h1 className="text-xl font-bold text-blue-900 flex items-center shrink-0">
-                  <SaveIcon />
+                <h1 className="text-xl font-bold text-eips-green flex items-center shrink-0">
+                  <img src="EIPS_Vertical_RGB.png" alt="EIPS Logo" className="h-8 w-auto mr-3 object-contain" />
                   Curriculum Unit Planner
                 </h1>
                 <nav className="flex items-center space-x-2">
                   <button
                     onClick={() => handleTabClick('course')}
                     className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                      ${activeTab === 'course' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
+                      ${activeTab === 'course' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
                     `}
                   >
                     Course Selection
@@ -1139,7 +1152,7 @@
                   <button
                     onClick={() => handleTabClick('overview')}
                     className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                      ${activeTab === 'overview' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
+                      ${activeTab === 'overview' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
                     `}
                   >
                     Curriculum Overview
@@ -1150,7 +1163,7 @@
                       <button
                         onClick={() => handleTabClick('checklist')}
                         className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                          ${activeTab === 'checklist' ? 'bg-blue-100 text-blue-800' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
+                          ${activeTab === 'checklist' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
                         `}
                       >
                         Checklist
@@ -1163,7 +1176,7 @@
                             onChange={(e) => {
                               if (e.target.value) handleTabClick(e.target.value);
                             }}
-                            className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-blue-50 text-blue-800 border-blue-300' : 'hover:bg-gray-50'}`}
+                            className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'hover:bg-gray-50'}`}
                          >
                             <option value="" disabled>View Unit Plan...</option>
                             {Array.from({length: loadedConfig.numUnits}, (_, i) => (
@@ -1232,7 +1245,7 @@
                   </button>
                   <button 
                     onClick={executeLoadCourse} 
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
                   >
                     Load New Course
                   </button>
@@ -1263,7 +1276,7 @@
                       setShowSavePrompt(false);
                       setPendingTab(null);
                     }} 
-                    className="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-md font-medium hover:bg-red-50 transition-colors"
+                    className="px-4 py-2 bg-white border border-eips-orange text-eips-orange rounded-md font-medium hover:bg-orange-50 transition-colors"
                   >
                     Leave Without Saving
                   </button>
@@ -1274,7 +1287,7 @@
                       setShowSavePrompt(false);
                       setPendingTab(null);
                     }} 
-                    className="px-4 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
+                    className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
                   >
                     Save & Continue
                   </button>
@@ -1298,7 +1311,7 @@
                   </button>
                   <button 
                     onClick={handleReset} 
-                    className="px-4 py-2 bg-red-600 text-white rounded-md font-medium hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 bg-eips-orange text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
                   >
                     Yes
                   </button>

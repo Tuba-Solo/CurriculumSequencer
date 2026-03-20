@@ -1044,17 +1044,26 @@
                 <h2 className="text-2xl font-bold text-gray-900">{unitName} Overview</h2>
                 <p className="text-gray-500 text-sm mt-1">{unitItems.length} items total allocated to this unit.</p>
               </div>
-              <button 
-                onClick={() => exportToWord(unitName, unitItems)}
-                disabled={unitItems.length === 0}
-                className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
-                  ${unitItems.length > 0 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-              >
-                <DownloadIcon />
-                Generate Unit Plan Template
-              </button>
+              <div className="flex items-center space-x-3">
+                <button 
+                  onClick={() => handleTabClick('checklist')}
+                  className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:bg-gray-50 transition-all"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                  Back to Checklist
+                </button>
+                <button 
+                  onClick={() => exportToWord(unitName, unitItems)}
+                  disabled={unitItems.length === 0}
+                  className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
+                    ${unitItems.length > 0 
+                      ? 'bg-green-600 hover:bg-green-700 text-white' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  <DownloadIcon />
+                  Generate Unit Plan Template
+                </button>
+              </div>
             </div>
 
             <div className="space-y-6">

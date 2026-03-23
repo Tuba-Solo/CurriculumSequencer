@@ -918,12 +918,12 @@
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
               <HelpIcon />
-              <h2 className="text-2xl font-bold text-gray-900 ml-3">How to Use the Curriculum Unit Planner</h2>
+              <h2 className="text-2xl font-bold text-gray-900 ml-3">How to Use the Alberta Curriculum Unit Planner</h2>
             </div>
             
             <div className="text-gray-600 text-sm md:text-base leading-relaxed space-y-6">
               <p>
-                Welcome to the Elk Island Public Schools Curriculum Unit Planner. This tool is designed to help educators streamline the process of mapping the Alberta curriculum into manageable, structured units using the Understanding by Design (UbD) framework.
+                Welcome to the Elk Island Public Schools Alberta Curriculum Unit Planner. This tool is designed to help educators streamline the process of mapping the Alberta curriculum into manageable, structured units using the Understanding by Design (UbD) framework.
               </p>
 
               {/* Code Hierarchy Explanation */}
@@ -1014,7 +1014,6 @@
           let textClasses = "text-sm ";
           let bgClass = getCodeBgColor(item.code, false);
           let descPadding = "px-6";
-          let treeLine = null;
 
           // "Option 3" Specific Chunked Hierarchy Styles
           if (type === 'oi') {
@@ -1022,12 +1021,10 @@
           } else if (type === 'gq') {
             descPadding = "pl-10 pr-6"; // Moderate indentation
             textClasses += "font-bold text-gray-900 text-sm ";
-            treeLine = <div className="absolute top-0 border-l-2 border-b-2 border-gray-300 rounded-bl-sm" style={{ left: '1.5rem', width: '0.5rem', height: '26px' }}></div>;
           } else if (type === 'lo') {
             descPadding = "pl-14 pr-6"; // Deep indentation
             rowClasses += "border-b border-gray-300 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 relative ";
             textClasses += "font-bold text-gray-900 ";
-            treeLine = <div className="absolute top-0 border-l-2 border-b-2 border-gray-300 rounded-bl-sm" style={{ left: '2.5rem', width: '0.5rem', height: '26px' }}></div>;
           } else { // child or orphan
             const cat = getCategory(item.code);
             if (cat === 'understandings') {
@@ -1035,13 +1032,11 @@
                rowClasses += "border-b border-black/5 hover:brightness-95 ";
                textClasses += "font-semibold text-gray-800 ";
                // Notice we DO NOT overwrite bgClass here, so U correctly keeps the parent LO colour
-               treeLine = <div className="absolute top-0 border-l-2 border-b-2 border-gray-300 rounded-bl-sm" style={{ left: '3.5rem', width: '1rem', height: '26px' }}></div>;
             } else {
                descPadding = "pl-[7rem] pr-6"; // K and SP deepest staircase indentation
                rowClasses += "border-b border-gray-100 hover:bg-gray-50 last:border-b-0 ";
                bgClass = "bg-white"; // Force children to be white inside the colored card
                textClasses += "font-normal text-gray-700 ";
-               treeLine = <div className="absolute top-0 border-l-2 border-b-2 border-gray-300 rounded-bl-sm" style={{ left: '5rem', width: '1.5rem', height: '26px' }}></div>;
             }
           }
 
@@ -1052,7 +1047,6 @@
                 {displayCode}
               </div>
               <div className={`w-[400px] shrink-0 ${descPadding} py-4 sticky left-[120px] z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit flex flex-col justify-start ${textClasses}`}>
-                {treeLine}
                 {item.desc}
               </div>
               {/* Flowing columns */}
@@ -1323,7 +1317,7 @@
               <div className="flex justify-between h-16 items-center">
                 <h1 className="text-xl font-bold text-eips-green flex items-center shrink-0">
                   <img src="EIPS_Vertical_RGB.png" alt="EIPS Logo" className="h-8 w-auto mr-3 object-contain" />
-                  Curriculum Unit Planner
+                  Alberta Curriculum Unit Planner
                 </h1>
                 <nav className="flex items-center space-x-2">
                   <button

@@ -261,7 +261,7 @@
                 ${renderList(categories.goals)}
                 
                 ${categories.other.length > 0 ? `
-                  <h2 style="margin-top: 15px;">ORGANISING IDEAS (OI)</h2>
+                  <h2 style="margin-top: 15px;">ORGANIZING IDEAS (OI)</h2>
                   ${renderList(categories.other)}
                 ` : ''}
               </td>
@@ -285,7 +285,7 @@
               </td>
               <td style="width: 50%;">
                 <h2>SKILLS & PROCEDURES</h2>
-                <p><i>Students will be skilled at...</i></p>
+                <p><i>Students will be able to...</i></p>
                 ${renderList(categories.skills)}
               </td>
             </tr>
@@ -303,7 +303,7 @@
             <tr>
               <td colspan="3">
                 <h2>Performance Task</h2>
-                <p>Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
+                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
               </td>
             </tr>
             <tr>
@@ -313,7 +313,7 @@
             <tr>
               <td colspan="3">
                 <h2>Other Evidence</h2>
-                <p>Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes.</p>
+                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes.</p>
               </td>
             </tr>
             <tr>
@@ -324,7 +324,7 @@
             <tr>
               <td colspan="3">
                 <h2>Student Self-Assessment</h2>
-                <p>How will students reflect upon or self-assess their learning?</p>
+                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
               </td>
             </tr>
             <tr>
@@ -1485,7 +1485,7 @@
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderSection('Knowledge (Students will know...)', categories.knows)}
-                {renderSection('Skills & Procedures (Students will be skilled at...)', categories.skills)}
+                {renderSection('Skills & Procedures (Students will be able to...)', categories.skills)}
               </div>
             </div>
           </div>

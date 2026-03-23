@@ -146,6 +146,33 @@
       }
     };
 
+    // Formats curriculum descriptions to isolate and render bullet points properly
+    const FormattedDescription = ({ text, className }) => {
+      if (!text) return null;
+      
+      // Splits the text whenever it sees a hyphen followed by a space, preceded by whitespace or start of string
+      const parts = text.split(/(?=(?:^|\s)- )/g);
+      
+      if (parts.length === 1) return <span className={className}>{text}</span>;
+
+      return (
+        <div className={className}>
+          {parts.map((part, index) => {
+            const trimmed = part.trimStart();
+            if (trimmed.startsWith('- ')) {
+              return (
+                <div key={index} className="flex items-start mt-1 ml-5">
+                  <span className="mr-2 text-eips-green font-bold">&bull;</span>
+                  <span>{trimmed.substring(2)}</span>
+                </div>
+              );
+            }
+            return <span key={index}>{part}</span>;
+          })}
+        </div>
+      );
+    };
+
     // HTML-to-Word exporter
     const exportToWord = (unitName, items) => {
       const categories = {
@@ -159,7 +186,21 @@
 
       const renderList = (list) => {
         if (!list || list.length === 0) return '<p><i>None selected</i></p>';
-        return `<ul>${list.map(i => `<li style="margin-bottom: 6px;"><strong>${i.code}</strong>: ${i.desc}</li>`).join('')}</ul>`;
+        return `<ul>${list.map(i => {
+          // Format text for word export to respect bulleted items
+          let descHtml = i.desc;
+          const parts = descHtml.split(/(?=(?:^|\s)- )/g);
+          if (parts.length > 1) {
+            descHtml = parts.map(p => {
+              const trimmed = p.trimStart();
+              if (trimmed.startsWith('- ')) {
+                return `<br>&nbsp;&nbsp;&nbsp;&nbsp;&#8226; ${trimmed.substring(2)}`;
+              }
+              return p;
+            }).join('');
+          }
+          return `<li style="margin-bottom: 6px;"><strong>${i.code}</strong>: ${descHtml}</li>`;
+        }).join('')}</ul>`;
       };
 
       const html = `
@@ -1127,7 +1168,7 @@
                   ))}
                 </div>
                 <div className={`flex-1 flex flex-col justify-start ${textClasses}`}>
-                  {item.desc}
+                  <FormattedDescription text={item.desc} />
                 </div>
               </div>
               {/* Flowing columns */}
@@ -1353,7 +1394,7 @@
                               </button>
                            ))}
                         </div>
-                        <span className="text-gray-800 text-sm block mt-1">{item.desc}</span>
+                        <FormattedDescription text={item.desc} className="text-gray-800 text-sm block mt-1" />
                       </div>
                     </li>
                   );

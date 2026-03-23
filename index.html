@@ -207,11 +207,13 @@
             </tr>
             <tr>
               <td style="width: 50%;">
-                <h2>STUDENTS WILL KNOW...</h2>
+                <h2>KNOWLEDGE</h2>
+                <p><i>Students will know...</i></p>
                 ${renderList(categories.knows)}
               </td>
               <td style="width: 50%;">
-                <h2>STUDENTS WILL BE SKILLED AT...</h2>
+                <h2>SKILLS & PROCEDURES</h2>
+                <p><i>Students will be skilled at...</i></p>
                 ${renderList(categories.skills)}
               </td>
             </tr>
@@ -739,28 +741,31 @@
                   <span className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-2 uppercase">LO</span> 
                   Learning Outcome
                 </h3>
-                <p className="text-sm text-gray-700 leading-snug">A clear, observable statement describing what students are expected to know, understand, and be able to do by the end of a specific grade or unit.</p>
-              </div>
-
-              {/* Pillars of the Outcome */}
-              <div className="grid md:grid-cols-3 gap-6 pt-2">
-                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
-                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
-                    <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mr-2 uppercase">U</span> Understandings
-                  </h4>
-                  <p className="text-sm text-gray-600">Concepts, themes, and big-picture relationships. These define the deeper meaning that students should comprehend and internalize.</p>
-                </div>
-                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
-                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
-                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded mr-2 uppercase">K</span> Knowledge
-                  </h4>
-                  <p className="text-sm text-gray-600">The specific facts, terminology, core concepts, and foundational information that students must actively acquire.</p>
-                </div>
-                <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
-                  <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
-                    <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded mr-2 uppercase">SP</span> Skills & Procedures
-                  </h4>
-                  <p className="text-sm text-gray-600">The specific actions, processes, and competencies students must develop to demonstrate and apply their knowledge and understandings.</p>
+                <p className="text-sm text-gray-700 leading-snug mb-4">A clear, observable statement describing what students are expected to know, understand, and be able to do by the end of a specific grade or unit.</p>
+                
+                {/* Pillars of the Outcome (Nested Hierarchy Visual) */}
+                <div className="grid md:grid-cols-1 gap-6 pt-2">
+                  <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
+                    <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                      <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mr-2 uppercase">U</span> Understandings
+                    </h4>
+                    <p className="text-sm text-gray-600 mb-4">Concepts, themes, and big-picture relationships. These define the deeper meaning that students should comprehend and internalize.</p>
+                    
+                    <div className="grid md:grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-2">
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
+                        <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded mr-2 uppercase">K</span> Knowledge
+                        </h4>
+                        <p className="text-sm text-gray-600">The specific facts, terminology, core concepts, and foundational information that students must actively acquire to support the understanding.</p>
+                      </div>
+                      <div className="bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
+                        <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
+                          <span className="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded mr-2 uppercase">SP</span> Skills & Procedures
+                        </h4>
+                        <p className="text-sm text-gray-600">The specific actions, processes, and competencies students must develop to demonstrate and apply their knowledge and understandings.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -907,7 +912,10 @@
         const renderRow = (item, type) => {
           const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
           const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
-          const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+          
+          // Extracts the exact final short code segment (e.g., U.1, SP.12)
+          const codeParts = item.code.split('.');
+          const displayCode = codeParts.length > 1 ? codeParts.slice(-2).join('.') : item.code;
 
           let rowClasses = "flex items-stretch transition-colors w-max min-w-full ";
           let textClasses = "text-sm ";
@@ -925,10 +933,18 @@
             rowClasses += "border-b border-gray-300 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 relative ";
             textClasses += "font-bold text-gray-900 ";
           } else { // child or orphan
-            descPadding = "pl-20 pr-6"; // Deepest staircase indentation
-            rowClasses += "border-b border-gray-100 hover:brightness-95 last:border-b-0 ";
-            bgClass = "bg-white"; // Force children to be white inside the colored card
-            textClasses += "font-normal text-gray-700 ";
+            const cat = getCategory(item.code);
+            if (cat === 'understandings') {
+               descPadding = "pl-[5rem] pr-6"; // U indentation
+               rowClasses += "border-b border-black/5 hover:brightness-95 ";
+               textClasses += "font-semibold text-gray-800 ";
+               // Notice we DO NOT overwrite bgClass here, so U correctly keeps the parent LO colour
+            } else {
+               descPadding = "pl-[7rem] pr-6"; // K and SP deepest staircase indentation
+               rowClasses += "border-b border-gray-100 hover:bg-gray-50 last:border-b-0 ";
+               bgClass = "bg-white"; // Force children to be white inside the colored card
+               textClasses += "font-normal text-gray-700 ";
+            }
           }
 
           return (
@@ -1024,7 +1040,7 @@
                     How to use this checklist:
                   </h3>
                   <ul className="list-disc pl-7 text-sm text-gray-700 space-y-1.5 marker:text-eips-green">
-                    <li><strong>Map Curriculum:</strong> Check boxes to assign items to specific units. Selecting a specific understanding (U), knowledge (K), or skill (SP) will automatically check its parent Learning Outcome and Guiding Question.</li>
+                    <li><strong>Map Curriculum:</strong> Check boxes to assign items to specific units. Selecting a specific knowledge (K) or skill & procedure (SP) will automatically check its parent Understanding (U), Learning Outcome (LO), and Guiding Question (GQ).</li>
                     <li><strong>Track Coverage:</strong> The <em>Use Count</em> column shows a red '0' for unassigned items. Your goal is to ensure every item turns green by the end of the year.</li>
                     <li><strong>Generate Plans:</strong> When ready, use the <em>View Unit Plan...</em> dropdown in the top navigation bar to review your assembled units and download your pre-formatted Word Document template.</li>
                   </ul>
@@ -1132,7 +1148,8 @@
               <ul className="space-y-3">
                 {list.map(item => {
                   const itemBg = getCodeBgColor(item.code, false);
-                  const displayCode = item.code.length > 4 ? item.code.slice(-4) : item.code;
+                  const codeParts = item.code.split('.');
+                  const displayCode = codeParts.length > 1 ? codeParts.slice(-2).join('.') : item.code;
                   
                   return (
                     <li key={item.id} className={`flex items-start p-3 rounded-md border border-gray-100 ${itemBg}`}>
@@ -1190,8 +1207,8 @@
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderSection('Students will know... (K)', categories.knows)}
-                {renderSection('Students will be skilled at... (SP)', categories.skills)}
+                {renderSection('Knowledge (Students will know...)', categories.knows)}
+                {renderSection('Skills & Procedures (Students will be skilled at...)', categories.skills)}
               </div>
             </div>
           </div>

@@ -373,6 +373,13 @@
       const [showCourseConfirm, setShowCourseConfirm] = useState(false);
       const [pendingTab, setPendingTab] = useState(null);
 
+      const subjectIconMap = {
+        'Social Studies': 'sss.svg',
+        'Physical Education and Wellness': 'pde.svg',
+        'Math': 'mat.svg',
+        'Career Education and Financial Literacy': 'cefl.svg'
+      };
+
       // Automatically load saved data when returning to the page
       useEffect(() => {
         const savedData = localStorage.getItem('curriculumPlannerData');
@@ -1036,18 +1043,11 @@
 
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '75vh' }}>
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-start shrink-0 z-50 relative">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800 flex items-center">
-                  Checklist <span className="text-sm font-normal text-gray-500 ml-2">({filteredItems.length} items)</span>
-                </h2>
-                {loadedConfig && (
-                  <div className="mt-1.5 inline-block bg-eips-green/10 text-eips-green text-xs font-bold px-2 py-1 rounded border border-eips-green/20">
-                    Grade {loadedConfig.grade} • {loadedConfig.subject}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-3 mt-1">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0 z-50 relative">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                Checklist <span className="text-sm font-normal text-gray-500 ml-2">({filteredItems.length} items)</span>
+              </h2>
+              <div className="flex items-center space-x-3">
                 <button 
                   onClick={() => setShowInstructions(!showInstructions)}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-colors ${showInstructions ? 'bg-eips-green/10 text-eips-green border-eips-green/30 hover:bg-eips-green/20' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
@@ -1239,14 +1239,7 @@
             <div className="flex justify-between items-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{unitName} Overview</h2>
-                <div className="flex items-center mt-2 space-x-3">
-                  {loadedConfig && (
-                    <div className="inline-block bg-eips-green/10 text-eips-green text-xs font-bold px-2 py-1 rounded border border-eips-green/20">
-                      Grade {loadedConfig.grade} • {loadedConfig.subject}
-                    </div>
-                  )}
-                  <p className="text-gray-500 text-sm">{unitItems.length} items total allocated to this unit.</p>
-                </div>
+                <p className="text-gray-500 text-sm mt-1">{unitItems.length} items total allocated to this unit.</p>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
@@ -1365,19 +1358,27 @@
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-            {/* Colour Legend displayed globally when data is loaded */}
-            {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && activeTab !== 'how-to' && (
-              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm select-none">
-                <strong className="text-gray-800 uppercase tracking-wide text-xs">Colour Legend:</strong>
-                <div onClick={() => scrollToGroup('OI')} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title="Click to scroll to OI"><span className="w-4 h-4 rounded bg-green-100 border border-green-300 mr-2"></span> Organizing Ideas (OI)</div>
-                {activeGroups.map(num => {
-                   const colorObj = colorPalette[(num - 1) % colorPalette.length];
-                   return (
-                     <div key={`legend-${num}`} onClick={() => scrollToGroup(num.toString())} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title={`Click to scroll to LO.${num} / GQ.${num}`}>
-                       <span className={`w-4 h-4 rounded ${colorObj.light} border ${colorObj.border} mr-2`}></span> LO.{num} / GQ.{num}
-                     </div>
-                   );
-                })}
+            {/* Course Header & Colour Legend displayed globally when data is loaded */}
+            {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && activeTab !== 'how-to' && loadedConfig && (
+              <div className="mb-6">
+                <div className="flex items-center mb-4 ml-1">
+                  <img src={subjectIconMap[loadedConfig.subject]} alt={loadedConfig.subject} className="h-10 w-10 mr-4 object-contain" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
+                    Grade {loadedConfig.grade} {loadedConfig.subject}
+                  </h2>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm select-none">
+                  <strong className="text-gray-800 uppercase tracking-wide text-xs">Colour Legend:</strong>
+                  <div onClick={() => scrollToGroup('OI')} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title="Click to scroll to OI"><span className="w-4 h-4 rounded bg-green-100 border border-green-300 mr-2"></span> Organizing Ideas (OI)</div>
+                  {activeGroups.map(num => {
+                     const colorObj = colorPalette[(num - 1) % colorPalette.length];
+                     return (
+                       <div key={`legend-${num}`} onClick={() => scrollToGroup(num.toString())} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title={`Click to scroll to LO.${num} / GQ.${num}`}>
+                         <span className={`w-4 h-4 rounded ${colorObj.light} border ${colorObj.border} mr-2`}></span> LO.{num} / GQ.{num}
+                       </div>
+                     );
+                  })}
+                </div>
               </div>
             )}
 

@@ -87,12 +87,12 @@
       const hasLO = parts.some(p => p === 'LO' || /^LO\d+/.test(p));
       const hasGQ = parts.some(p => p === 'GQ' || /^GQ\d+/.test(p));
 
-      if (hasGQ && !hasLO && !hasK && !hasU && !hasSP) return 'questions';
-
-      if (hasU) return 'understandings';
+      // Reverse priority check: deepest nested elements first
       if (hasK) return 'knows';
       if (hasSP) return 'skills';
+      if (hasU) return 'understandings';
       if (hasLO) return 'goals';
+      if (hasGQ) return 'questions';
       
       return 'other'; 
     };
@@ -501,20 +501,22 @@
            }
         }
 
+        // If a U, K, or SP is selected, auto-select its corresponding OI, LO, GQ, and parent U (if applicable)
         const isChild = cat === 'understandings' || cat === 'knows' || cat === 'skills';
         if (newState === true && isChild) {
-           const oiMatch = code.match(/OI\.(\d+)/);
-           const loMatch = code.match(/LO\.(\d+)/);
-           
-           if (oiMatch) {
-              const oiRegex = new RegExp(`(?:^|\\.)OI\\.${oiMatch[1]}(?:$|\\.)`);
-              parentMatchFns.push((i) => oiRegex.test(i.code) && getCategory(i.code) === 'other');
-           }
-           if (loMatch) {
-              const loRegex = new RegExp(`(?:^|\\.)LO\\.${loMatch[1]}(?:$|\\.)`);
-              const gqRegex = new RegExp(`(?:^|\\.)GQ\\.${loMatch[1]}(?:$|\\.)`);
-              parentMatchFns.push((i) => loRegex.test(i.code) && getCategory(i.code) === 'goals');
-              parentMatchFns.push((i) => gqRegex.test(i.code) && getCategory(i.code) === 'questions');
+           // Extract the exact parent prefixes directly from the string to support any level of nesting
+           const oiMatch = code.match(/(.*?OI\.\d+)/);
+           if (oiMatch) parentMatchFns.push((i) => i.code === oiMatch[1]);
+
+           const gqMatch = code.match(/(.*?GQ\.\d+)/);
+           if (gqMatch) parentMatchFns.push((i) => i.code === gqMatch[1]);
+
+           const loMatch = code.match(/(.*?LO\.\d+)/);
+           if (loMatch) parentMatchFns.push((i) => i.code === loMatch[1]);
+
+           const uMatch = code.match(/(.*?U\.\d+)/);
+           if (uMatch && (cat === 'knows' || cat === 'skills')) {
+              parentMatchFns.push((i) => i.code === uMatch[1]);
            }
         }
 

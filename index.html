@@ -37,7 +37,56 @@
   <script type="text/babel">
     const { useState, useMemo, useEffect, useRef } = React;
 
+    // --- Gemini API Integration ---
+    const generateGeminiContent = async (prompt, apiKey, expectJson = false) => {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        systemInstruction: { 
+          parts: [{ 
+            text: "You are an expert Alberta curriculum planner and master teacher. Provide highly creative, practical, and pedagogical responses based on the Understanding by Design (UbD) framework." 
+          }] 
+        }
+      };
+
+      if (expectJson) {
+        payload.generationConfig = { responseMimeType: "application/json" };
+      }
+
+      const fetchWithRetry = async (retries = 5, delay = 1000) => {
+        try {
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
+        } catch (error) {
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(retries - 1, delay * 2);
+          } else {
+            throw new Error("Failed to generate content after multiple attempts. Please try again later.");
+          }
+        }
+      };
+
+      return await fetchWithRetry();
+    };
+
     // --- Utility Functions ---
+
+    const parseLLMResponse = (text) => {
+       try {
+          const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+          return JSON.parse(cleaned);
+       } catch (e) {
+          throw new Error("Failed to parse the AI response format. Please try generating again.");
+       }
+    };
 
     // Robust CSV Parser
     function parseCSV(text) {
@@ -174,7 +223,7 @@
     };
 
     // HTML-to-Word exporter (Native MS Word XML Compiler)
-    const exportToWord = (unitName, items, config) => {
+    const exportToWord = (unitName, items, config, unitDataForExport) => {
       const categories = {
         understandings: items.filter(i => getCategory(i.code) === 'understandings'),
         knows: items.filter(i => getCategory(i.code) === 'knows'),
@@ -183,6 +232,9 @@
         other: items.filter(i => getCategory(i.code) === 'other'),
         questions: items.filter(i => getCategory(i.code) === 'questions'),
       };
+
+      const pt = unitDataForExport?.performanceTask;
+      const lessons = unitDataForExport?.lessons || [];
 
       const renderList = (list) => {
         if (!list || list.length === 0) return '<p><i>None selected</i></p>';
@@ -304,11 +356,18 @@
               <td colspan="3">
                 <h2>Performance Task</h2>
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
+                ${pt ? `<p style="margin-top:10px;">${pt.scenario.replace(/\n/g, '<br>')}</p>` : '<br><br><br>'}
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br><br><br><br></td>
-              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br><br><br><br></td>
+              <td style="width: 33.33%;">
+                <strong>Evaluative Criteria</strong><br><br>
+                ${pt ? pt.evaluativeCriteria.replace(/\n/g, '<br>') : '<br><br><br><br>'}
+              </td>
+              <td colspan="2" style="width: 66.66%;">
+                <strong>Elements of the Performance Task</strong><br><br>
+                ${pt ? pt.elements.replace(/\n/g, '<br>') : '<br><br><br><br>'}
+              </td>
             </tr>
             <tr>
               <td colspan="3">
@@ -378,7 +437,18 @@
               <th style="width: 10%; background-color: #e2e8f0; font-size: 11pt;">Resources</th>
               <th style="width: 20%; background-color: #e2e8f0; font-size: 11pt;">Success Criteria&#185;</th>
             </tr>
-            ${Array(10).fill('<tr><td><br><br></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
+            ${lessons.length > 0 ? lessons.map((l, i) => `
+              <tr>
+                <td style="text-align: center;">${i+1}</td>
+                <td><strong>${l.title}</strong></td>
+                <td>${l.description.replace(/\n/g, '<br>')}</td>
+                <td>${l.kusps}</td>
+                <td>${l.competencies}</td>
+                <td></td>
+                <td>${l.successCriteria}</td>
+              </tr>
+            `).join('') : ''}
+            ${Array(Math.max(0, 10 - lessons.length)).fill('<tr><td><br><br></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
           </table>
           <p style="font-size: 9pt; color: #475569; margin-top: 20px;">
             &#185; Success criteria are concrete descriptions of what constitutes quality work and the evidence used to determine progress toward learning goals, specifically written in student-friendly language so learners can assess their own understanding.
@@ -434,15 +504,20 @@
     const LightbulbIcon = () => <svg className="w-6 h-6 text-eips-orange mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
     const DatabaseIcon = () => <svg className="w-12 h-12 text-eips-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
     const HelpIcon = () => <svg className="w-6 h-6 text-eips-green mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+    const SparkleIcon = () => <span className="mr-1.5">✨</span>;
 
     // --- Main Application Component ---
     function App() {
       const [items, setItems] = useState([]);
+      const [unitData, setUnitData] = useState({});
       const [activeTab, setActiveTab] = useState('course');
       const [searchTerm, setSearchTerm] = useState('');
       const [saveStatus, setSaveStatus] = useState('');
       const [showInstructions, setShowInstructions] = useState(true);
       
+      const [apiKey, setApiKey] = useState('');
+      const [tempApiKey, setTempApiKey] = useState('');
+
       // Custom Scrollbar References
       const tableRef = useRef(null);
       const scrollRef = useRef(null);
@@ -458,6 +533,9 @@
       const [showSavePrompt, setShowSavePrompt] = useState(false);
       const [showCourseConfirm, setShowCourseConfirm] = useState(false);
       const [pendingTab, setPendingTab] = useState(null);
+      
+      // LLM Modal State
+      const [llmModal, setLlmModal] = useState({ isOpen: false, type: '', unitNum: null, selectedIndices: [], title: '', content: null, isLoading: false, error: '' });
 
       const subjectIconMap = {
         'Social Studies': 'sss.svg',
@@ -468,6 +546,12 @@
 
       // Automatically load saved data when returning to the page
       useEffect(() => {
+        const savedKey = localStorage.getItem('geminiApiKey');
+        if (savedKey) {
+          setApiKey(savedKey);
+          setTempApiKey(savedKey);
+        }
+
         const savedData = localStorage.getItem('curriculumPlannerData');
         if (savedData) {
           try {
@@ -476,6 +560,7 @@
               setItems(parsed.items);
               setLoadedConfig(parsed.loadedConfig);
               setAppConfig(parsed.loadedConfig);
+              if (parsed.unitData) setUnitData(parsed.unitData);
               setActiveTab('checklist');
             } else if (Array.isArray(parsed)) {
               localStorage.removeItem('curriculumPlannerData');
@@ -486,8 +571,21 @@
         }
       }, []);
 
+      const handleSaveApiKey = () => {
+        if (tempApiKey.trim()) {
+          localStorage.setItem('geminiApiKey', tempApiKey.trim());
+          setApiKey(tempApiKey.trim());
+        }
+      };
+
+      const handleClearApiKey = () => {
+        localStorage.removeItem('geminiApiKey');
+        setApiKey('');
+        setTempApiKey('');
+      };
+
       const handleSaveProgress = () => {
-        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items, loadedConfig }));
+        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items, loadedConfig, unitData }));
         setSaveStatus('Saved!');
         setTimeout(() => setSaveStatus(''), 2000); 
       };
@@ -502,7 +600,8 @@
           return newItem;
         });
         setItems(clearedItems);
-        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items: clearedItems, loadedConfig }));
+        setUnitData({}); // Clear generated content on reset
+        localStorage.setItem('curriculumPlannerData', JSON.stringify({ items: clearedItems, loadedConfig, unitData: {} }));
         setShowResetConfirm(false);
       };
 
@@ -586,6 +685,76 @@
         } else {
            executeLoadCourse();
         }
+      };
+
+      // Handler for manual CSV file uploads
+      const handleManualUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setShowCourseConfirm(false);
+        setLoadingData(true);
+        setLoadError('');
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const text = evt.target.result;
+            const parsed = parseCSV(text);
+            
+            // --- NORMALIZATION ENGINE ---
+            let lastUReplacement = 'U.1';
+
+            const data = parsed.slice(1)
+              .filter(r => r.length > 1 && r[0])
+              .map((r, index) => {
+                let code = r[0].trim();
+                const upperCode = code.toUpperCase();
+                
+                const isLO = /(?:^|\.)LO\.\d+(?:$|\.)/.test(upperCode) && !/(?:^|\.)U\.\d+/.test(upperCode) && !/(?:^|\.)K\.\d+/.test(upperCode) && !/(?:^|\.)SP\.\d+/.test(upperCode);
+                const isU = /(?:^|\.)U\.\d+(?:$|\.)/.test(upperCode);
+                const isK = /(?:^|\.)K\.\d+(?:$|\.)/.test(upperCode);
+                const isSP = /(?:^|\.)SP\.\d+(?:$|\.)/.test(upperCode);
+
+                if (isLO) lastUReplacement = 'U.1'; 
+                if (isU) {
+                  const uMatch = upperCode.match(/U\.\d+/);
+                  if (uMatch) lastUReplacement = uMatch[0];
+                }
+
+                if ((isK || isSP) && !/(?:^|\.)U\.\d+/.test(upperCode)) {
+                  code = code.replace(/(K\.\d+|SP\.\d+)/i, `${lastUReplacement}.$1`);
+                }
+
+                const item = {
+                  id: index,
+                  code: code,
+                  desc: r[1] ? r[1].replace(/\n/g, ' ') : ''
+                };
+                for(let i = 1; i <= appConfig.numUnits; i++) {
+                  item[`u${i}`] = false;
+                }
+                return item;
+              });
+              
+            setItems(data);
+            // Uses the currently selected dropdowns (Grade, Subject, Num Units) for the config labels
+            setLoadedConfig(appConfig);
+            setActiveTab('checklist');
+          } catch (err) {
+            setLoadError('Error parsing manual file: ' + err.message);
+          } finally {
+            setLoadingData(false);
+          }
+        };
+        reader.onerror = () => {
+          setLoadError('Failed to read file.');
+          setLoadingData(false);
+        };
+        reader.readAsText(file);
+        
+        // Reset the file input so the same file can be uploaded again if needed
+        e.target.value = null;
       };
 
       // Custom synced horizontal scrolling behavior 
@@ -722,7 +891,7 @@
       const handleTabClick = (tab) => {
         if (activeTab === 'checklist' && tab !== 'checklist') {
           const savedData = localStorage.getItem('curriculumPlannerData');
-          const currentData = JSON.stringify({ items, loadedConfig });
+          const currentData = JSON.stringify({ items, loadedConfig, unitData });
           
           if (items.length > 0 && savedData !== currentData) {
             setPendingTab(tab);
@@ -731,6 +900,124 @@
           }
         }
         setActiveTab(tab);
+      };
+
+      // --- LLM Assistant Handlers ---
+      const buildPromptContext = (unitItems) => {
+        let contextText = `I am planning a Unit for Grade ${loadedConfig.grade} ${loadedConfig.subject}.\n\n`;
+        contextText += `Here are the specific curriculum outcomes I have selected for this unit:\n`;
+        
+        unitItems.forEach(item => {
+           const cat = getCategory(item.code);
+           if (cat === 'goals' || cat === 'understandings' || cat === 'knows' || cat === 'skills') {
+              contextText += `- [${item.code}] ${item.desc}\n`;
+           }
+        });
+        return contextText;
+      };
+
+      const handleGeneratePerformanceTask = async (unitItems, unitNum) => {
+        if (!apiKey) return;
+        
+        setLlmModal({ isOpen: true, type: 'pt', unitNum, selectedIndices: [], title: 'Drafting Performance Task...', content: null, isLoading: true, error: '' });
+        
+        const context = buildPromptContext(unitItems);
+        const prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.\n\nYou MUST return ONLY a valid JSON object with exactly three string keys:\n1. "scenario": The learning activity in story form.\n2. "elements": The specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": By what criteria the performance will be judged.`;
+
+        try {
+          const response = await generateGeminiContent(prompt, apiKey, true);
+          const parsedData = parseLLMResponse(response);
+          setLlmModal(prev => ({ ...prev, title: 'Performance Task Draft', content: parsedData, isLoading: false }));
+        } catch (err) {
+          setLlmModal(prev => ({ ...prev, title: 'Generation Failed', error: err.message, isLoading: false }));
+        }
+      };
+
+      const handleGenerateLessonIdeas = async (unitItems, unitNum) => {
+        if (!apiKey) return;
+        
+        setLlmModal({ isOpen: true, type: 'lessons', unitNum, selectedIndices: [], title: 'Brainstorming Lesson Ideas...', content: null, isLoading: true, error: '' });
+        
+        const context = buildPromptContext(unitItems);
+        const competenciesList = "Critical Thinking, Problem Solving, Managing Information, Creativity and Innovation, Communication, Collaboration, Cultural and Global Citizenship, Personal Growth and Well-being";
+        
+        let targetGrade = "a lower";
+        const parsedGrade = parseInt(loadedConfig.grade);
+        if (!isNaN(parsedGrade)) {
+            targetGrade = `a Grade ${Math.max(1, parsedGrade - 1)}`;
+        }
+
+        const prompt = `${context}\n\nPlease brainstorm 5 creative, highly engaging lesson activities for this unit. For 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
+
+        try {
+          const response = await generateGeminiContent(prompt, apiKey, true);
+          const parsedData = parseLLMResponse(response);
+          setLlmModal(prev => ({ ...prev, title: 'Lesson Activity Ideas', content: parsedData, isLoading: false }));
+        } catch (err) {
+          setLlmModal(prev => ({ ...prev, title: 'Generation Failed', error: err.message, isLoading: false }));
+        }
+      };
+
+      const handleSelectLesson = (idx) => {
+        setLlmModal(prev => {
+          const isSelected = prev.selectedIndices.includes(idx);
+          const newIndices = isSelected 
+             ? prev.selectedIndices.filter(i => i !== idx) 
+             : [...prev.selectedIndices, idx];
+          return { ...prev, selectedIndices: newIndices };
+        });
+      };
+
+      const handleAddToTemplate = () => {
+        if (llmModal.type === 'pt') {
+           setUnitData(prev => ({
+              ...prev,
+              [llmModal.unitNum]: {
+                 ...(prev[llmModal.unitNum] || {}),
+                 performanceTask: llmModal.content
+              }
+           }));
+        } else if (llmModal.type === 'lessons') {
+           const selectedLessons = llmModal.selectedIndices.map(i => llmModal.content[i]);
+           setUnitData(prev => {
+              const existing = prev[llmModal.unitNum]?.lessons || [];
+              return {
+                 ...prev,
+                 [llmModal.unitNum]: {
+                    ...(prev[llmModal.unitNum] || {}),
+                    lessons: [...existing, ...selectedLessons]
+                 }
+              };
+           });
+        }
+        
+        setLlmModal(prev => ({ ...prev, title: 'Added to Lesson Template!', isLoading: false }));
+        setTimeout(() => {
+           setLlmModal(prev => ({ ...prev, isOpen: false }));
+        }, 1500);
+      };
+
+      const copyLlmContent = () => {
+        let textToCopy = '';
+        if (llmModal.type === 'pt' && llmModal.content) {
+            textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nEVALUATIVE CRITERIA:\n${llmModal.content.evaluativeCriteria}`;
+        } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
+            const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
+            textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
+        }
+
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        
+        const originalTitle = llmModal.title;
+        setLlmModal(prev => ({ ...prev, title: 'Copied to Clipboard!' }));
+        setTimeout(() => {
+          setLlmModal(prev => ({ ...prev, title: originalTitle }));
+        }, 2000);
       };
 
       const filteredItems = useMemo(() => {
@@ -853,6 +1140,20 @@
             >
               {loadingData ? 'Loading Data...' : 'Load Course Data'}
             </button>
+
+            {/* Manual Upload Section */}
+            <div className="mt-3 text-center">
+              <input 
+                type="file" 
+                accept=".csv" 
+                id="manual-upload" 
+                className="hidden" 
+                onChange={handleManualUpload} 
+              />
+              <label htmlFor="manual-upload" className="text-xs text-gray-400 hover:text-eips-green cursor-pointer transition-colors">
+                Manual Upload (.csv)
+              </label>
+            </div>
           </div>
         </div>
       );
@@ -1388,6 +1689,7 @@
         const unitField = `u${unitNum}`;
         const unitItems = items.filter(item => item[unitField]);
         const unitName = `Unit ${unitNum}`;
+        const currentUnitData = unitData[unitNum] || {};
         
         const categories = {
           goals: unitItems.filter(i => getCategory(i.code) === 'goals'),
@@ -1470,7 +1772,7 @@
                   Back to Checklist
                 </button>
                 <button 
-                  onClick={() => exportToWord(unitName, unitItems, loadedConfig)}
+                  onClick={() => exportToWord(unitName, unitItems, loadedConfig, currentUnitData)}
                   disabled={unitItems.length === 0}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
                     ${unitItems.length > 0 
@@ -1481,6 +1783,68 @@
                   Generate Unit Plan Template
                 </button>
               </div>
+            </div>
+
+            {/* AI Planning Assistants Panel */}
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100 shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-bold text-indigo-900 flex items-center">
+                  <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> 
+                  AI Planning Assistants
+                </h3>
+                {apiKey && (
+                  <button onClick={handleClearApiKey} className="text-xs text-indigo-500 hover:text-indigo-700 underline focus:outline-none">
+                    Clear API Key
+                  </button>
+                )}
+              </div>
+              
+              {!apiKey ? (
+                <div className="mt-3 bg-white p-4 rounded-md border border-indigo-100 shadow-sm">
+                  <p className="text-sm text-gray-700 mb-3">
+                    To use the AI Planning Assistants, please enter your free Google Gemini API key. Your key is saved locally in your browser and is never sent to our servers.
+                  </p>
+                  <div className="flex gap-2">
+                    <input 
+                      type="password" 
+                      placeholder="Paste your Gemini API key here..."
+                      value={tempApiKey}
+                      onChange={(e) => setTempApiKey(e.target.value)}
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button 
+                      onClick={handleSaveApiKey}
+                      disabled={!tempApiKey.trim()}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                    >
+                      Save Key
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Don't have one? Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-indigo-700 mb-4">Use your selected curriculum items to automatically generate targeted materials for your unit.</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button 
+                      onClick={() => handleGeneratePerformanceTask(unitItems, unitNum)}
+                      disabled={unitItems.length === 0}
+                      className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                    >
+                      <SparkleIcon /> Draft Performance Task (Stage 2)
+                    </button>
+                    <button 
+                      onClick={() => handleGenerateLessonIdeas(unitItems, unitNum)}
+                      disabled={unitItems.length === 0}
+                      className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}
+                    >
+                      <SparkleIcon /> Brainstorm Lesson Ideas (Stage 3)
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -1497,6 +1861,60 @@
                 {renderSection('Skills & Procedures (Students will be able to...)', categories.skills)}
               </div>
             </div>
+
+            {/* Generated Output Preview Section */}
+            {(currentUnitData.performanceTask || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
+              <div className="pt-4 space-y-6">
+                <h3 className="text-xl font-bold text-gray-800 border-b border-gray-300 pb-2">Generated Unit Content</h3>
+                
+                {currentUnitData.performanceTask && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button 
+                      onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].performanceTask; return upd; })}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
+                      title="Remove from Unit"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                       <SparkleIcon /> Performance Task
+                    </h3>
+                    <h4 className="font-bold text-sm text-gray-700">Scenario</h4>
+                    <p className="text-sm mb-3 whitespace-pre-wrap">{currentUnitData.performanceTask.scenario}</p>
+                    <h4 className="font-bold text-sm text-gray-700">Elements</h4>
+                    <p className="text-sm mb-3 whitespace-pre-wrap">{currentUnitData.performanceTask.elements}</p>
+                    <h4 className="font-bold text-sm text-gray-700">Evaluative Criteria</h4>
+                    <p className="text-sm whitespace-pre-wrap">{currentUnitData.performanceTask.evaluativeCriteria}</p>
+                  </div>
+                )}
+
+                {currentUnitData.lessons && currentUnitData.lessons.length > 0 && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button 
+                      onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].lessons; return upd; })}
+                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
+                      title="Clear All Lessons"
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                       <SparkleIcon /> Lesson Activity Ideas
+                    </h3>
+                    <div className="space-y-4">
+                      {currentUnitData.lessons.map((l, i) => (
+                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                          <h4 className="font-bold text-base text-gray-900 mb-1">{i+1}. {l.title}</h4>
+                          <p className="text-sm text-gray-800 mb-3">{l.description}</p>
+                          <p className="text-xs text-gray-600 mb-1"><b>KUSPs:</b> {l.kusps}</p>
+                          <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {l.competencies}</p>
+                          <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       };
@@ -1627,6 +2045,94 @@
               <img src="https://mirrors.creativecommons.org/presskit/icons/sa.svg" alt="" style={{ maxWidth: '1em', maxHeight: '1em', marginLeft: '.2em' }} />
             </div>
           </footer>
+
+          {/* LLM Output Modal */}
+          {llmModal.isOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[60]">
+              <div className="bg-white p-6 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+                <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                  <h3 className="text-xl font-bold text-indigo-900 flex items-center">
+                     <SparkleIcon /> {llmModal.title}
+                  </h3>
+                  <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 p-4 rounded border border-gray-200">
+                  {llmModal.isLoading ? (
+                    <div className="flex items-center justify-center h-40 text-indigo-500 font-medium">
+                      <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      Thinking...
+                    </div>
+                  ) : llmModal.error ? (
+                    <span className="text-red-600">{llmModal.error}</span>
+                  ) : (
+                    <>
+                      {llmModal.type === 'pt' && llmModal.content && (
+                        <div>
+                           <h4 className="font-bold text-indigo-900 mb-1">Scenario</h4>
+                           <p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.scenario}</p>
+                           <h4 className="font-bold text-indigo-900 mb-1">Elements</h4>
+                           <p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.elements}</p>
+                           <h4 className="font-bold text-indigo-900 mb-1">Evaluative Criteria</h4>
+                           <p className="text-sm text-gray-800 whitespace-pre-wrap">{llmModal.content.evaluativeCriteria}</p>
+                        </div>
+                      )}
+                      {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
+                        <div className="space-y-3">
+                           <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
+                           {llmModal.content.map((lesson, idx) => (
+                               <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
+                                  <input 
+                                    type="checkbox" 
+                                    className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500"
+                                    checked={llmModal.selectedIndices.includes(idx)}
+                                    onChange={() => handleSelectLesson(idx)} 
+                                  />
+                                  <div className="flex-1">
+                                     <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
+                                     <p className="text-sm text-gray-800 mb-2">{lesson.description}</p>
+                                     <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps}</p>
+                                     <p className="text-xs text-gray-600"><b>Competencies:</b> {lesson.competencies}</p>
+                                     <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
+                                  </div>
+                               </label>
+                           ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2">
+                  <button 
+                    onClick={() => setLlmModal({ ...llmModal, isOpen: false })}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Close
+                  </button>
+                  {!llmModal.isLoading && !llmModal.error && (
+                    <>
+                      <button 
+                        onClick={handleAddToTemplate}
+                        disabled={llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0}
+                        className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}
+                      >
+                        Add to Lesson Template
+                      </button>
+                      <button 
+                        onClick={copyLlmContent}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium shadow-sm hover:bg-indigo-700 transition-colors"
+                      >
+                        Copy to Clipboard
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Load New Course Confirmation Modal */}
           {showCourseConfirm && (

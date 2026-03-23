@@ -173,7 +173,7 @@
       );
     };
 
-    // HTML-to-Word exporter
+    // HTML-to-Word exporter (Native MS Word XML Compiler)
     const exportToWord = (unitName, items, config) => {
       const categories = {
         understandings: items.filter(i => getCategory(i.code) === 'understandings'),
@@ -204,19 +204,30 @@
       };
 
       const html = `
-        <!DOCTYPE html>
-        <html>
+        <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
           <meta charset='utf-8'>
           <title>${unitName} Plan Template</title>
+          <!--[if gte mso 9]>
+          <xml>
+            <w:WordDocument>
+              <w:View>Print</w:View>
+              <w:Zoom>100</w:Zoom>
+              <w:DoNotOptimizeForBrowser/>
+            </w:WordDocument>
+          </xml>
+          <![endif]-->
           <style>
-            @page {
-              size: 29.7cm 21cm;
+            @page WordSection1 {
+              size: 27.94cm 21.59cm;
               mso-page-orientation: landscape;
-              margin: 2cm;
+              margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+              mso-header-margin: 1.5cm;
+              mso-footer-margin: 1.5cm;
+              mso-paper-source: 0;
             }
+            div.WordSection1 { page: WordSection1; }
             body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; }
-            div.Section1 { page: Section1; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             th, td { border: 1px solid #000; padding: 12px; vertical-align: top; }
             th { background-color: #e2e8f0; text-align: left; font-size: 14pt; }
@@ -229,7 +240,7 @@
           </style>
         </head>
         <body>
-          <div class="Section1">
+          <div class="WordSection1">
           <h1>Understanding by Design (UbD) Unit Plan</h1>
           
           <table class="meta-table">
@@ -327,13 +338,13 @@
             </tr>
             <tr>
               <td colspan="6" class="instruction-text">
-                <p>Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
-                <p>What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way?</p>
+                <p style="margin-bottom: 8px;">Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
+                <p style="margin-bottom: 8px;">What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way?</p>
                 <p>What individual needs do you anticipate will need to be addressed?</p>
               </td>
             </tr>
             <tr>
-              <td colspan="6"><br><br><br><br><br></td>
+              <td colspan="6"><br><br><br><br><br><br></td>
             </tr>
             <tr>
               <td colspan="6" class="instruction-text">
@@ -341,7 +352,7 @@
               </td>
             </tr>
             <tr>
-              <td colspan="6"><br><br><br><br><br></td>
+              <td colspan="6"><br><br><br><br><br><br></td>
             </tr>
             <tr>
               <td colspan="6" class="instruction-text">
@@ -363,12 +374,11 @@
         </html>
       `;
 
-      // Use html-docx-js to convert the HTML string into a true .docx Blob
-      const convertedBlob = window.htmlDocx.asBlob(html, { orientation: 'landscape' });
-      const url = URL.createObjectURL(convertedBlob);
+      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.docx`;
+      link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.doc`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

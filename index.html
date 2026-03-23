@@ -347,6 +347,7 @@
     const BookIcon = () => <svg className="w-6 h-6 text-eips-green mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
     const LightbulbIcon = () => <svg className="w-6 h-6 text-eips-orange mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>;
     const DatabaseIcon = () => <svg className="w-12 h-12 text-eips-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
+    const HelpIcon = () => <svg className="w-6 h-6 text-eips-green mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
 
     // --- Main Application Component ---
     function App() {
@@ -905,6 +906,62 @@
         </div>
       );
 
+      const renderHowToUse = () => (
+        <div className="max-w-4xl mx-auto space-y-8 pb-10">
+          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <HelpIcon />
+              <h2 className="text-2xl font-bold text-gray-900 ml-3">How to Use the Curriculum Unit Planner</h2>
+            </div>
+            
+            <div className="text-gray-600 text-sm md:text-base leading-relaxed space-y-6">
+              <p>
+                Welcome to the Elk Island Public Schools Curriculum Unit Planner. This tool is designed to help educators streamline the process of mapping the Alberta curriculum into manageable, structured units using the Understanding by Design (UbD) framework.
+              </p>
+
+              <div className="bg-eips-green/5 border-l-4 border-eips-green p-4 rounded-r-md">
+                <h3 className="font-bold text-eips-green text-lg mb-2">1. Course Selection</h3>
+                <p>
+                  Start on the <strong>Course Selection</strong> tab. Choose the grade level, the specific subject you are teaching, and the total number of units you plan to divide your year into. Clicking "Load Course Data" will pull the exact, up-to-date provincial curriculum codes into your workspace.
+                </p>
+              </div>
+
+              <div className="bg-eips-orange/5 border-l-4 border-eips-orange p-4 rounded-r-md">
+                <h3 className="font-bold text-eips-orange text-lg mb-2">2. Mapping the Checklist</h3>
+                <p>
+                  Navigate to the <strong>Checklist</strong> tab to view the full curriculum. 
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>Review the Organising Ideas (OI), Guiding Questions (GQ), Learning Outcomes (LO), Understandings (U), Knowledge (K), and Skills & Procedures (SP).</li>
+                  <li>Use the checkboxes on the right to assign specific items to your chosen units (e.g., Unit 1, Unit 2).</li>
+                  <li><strong>Smart Selection:</strong> Checking a Knowledge (K) or Skill & Procedure (SP) item will automatically check its parent elements (U, LO, GQ, OI) to ensure you have the full required context for that outcome.</li>
+                  <li>Ensure every item has a "Use Count" of at least 1 (turns green) to guarantee full curriculum coverage.</li>
+                </ul>
+              </div>
+
+              <div className="bg-eips-lime/10 border-l-4 border-eips-lime p-4 rounded-r-md">
+                <h3 className="font-bold text-eips-green text-lg mb-2">3. Review & Generate Unit Plans</h3>
+                <p>
+                  Once you have assigned items to a unit, use the <strong>View Unit Plan...</strong> dropdown in the top navigation bar to select a specific unit (e.g., Unit 1 Overview).
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>This page will display a consolidated view of <em>only</em> the curriculum elements you mapped to that specific unit, grouped logically by category.</li>
+                  <li>Click the <strong>Generate Unit Plan Template</strong> button in the top right. This will instantly download a pre-formatted Microsoft Word (.docx) file containing all your selected curriculum data, ready for you to add your specific assessments and daily lesson plans.</li>
+                </ul>
+              </div>
+
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-md">
+                <h3 className="font-bold text-gray-800 text-lg mb-2">Saving Your Progress</h3>
+                <p>
+                  Your work is not automatically saved to the cloud. Click the green <strong>Save Progress</strong> button on the Checklist page frequently. This stores your current mapping securely in your browser's local memory. You can close the tab and return tomorrow, and your selections will automatically load.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      );
+
       const renderChecklist = () => {
         const unitCount = loadedConfig ? loadedConfig.numUnits : 0;
         
@@ -979,9 +1036,18 @@
 
         return (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col" style={{ height: '75vh' }}>
-            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center shrink-0 z-50 relative">
-              <h2 className="text-lg font-bold text-gray-800">Checklist ({filteredItems.length} items)</h2>
-              <div className="flex items-center space-x-3">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-start shrink-0 z-50 relative">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                  Checklist <span className="text-sm font-normal text-gray-500 ml-2">({filteredItems.length} items)</span>
+                </h2>
+                {loadedConfig && (
+                  <div className="mt-1.5 inline-block bg-eips-green/10 text-eips-green text-xs font-bold px-2 py-1 rounded border border-eips-green/20">
+                    Grade {loadedConfig.grade} • {loadedConfig.subject}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center space-x-3 mt-1">
                 <button 
                   onClick={() => setShowInstructions(!showInstructions)}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-colors ${showInstructions ? 'bg-eips-green/10 text-eips-green border-eips-green/30 hover:bg-eips-green/20' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
@@ -1173,7 +1239,14 @@
             <div className="flex justify-between items-center bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{unitName} Overview</h2>
-                <p className="text-gray-500 text-sm mt-1">{unitItems.length} items total allocated to this unit.</p>
+                <div className="flex items-center mt-2 space-x-3">
+                  {loadedConfig && (
+                    <div className="inline-block bg-eips-green/10 text-eips-green text-xs font-bold px-2 py-1 rounded border border-eips-green/20">
+                      Grade {loadedConfig.grade} • {loadedConfig.subject}
+                    </div>
+                  )}
+                  <p className="text-gray-500 text-sm">{unitItems.length} items total allocated to this unit.</p>
+                </div>
               </div>
               <div className="flex items-center space-x-3">
                 <button 
@@ -1273,6 +1346,19 @@
                       </div>
                     </>
                   )}
+
+                  {/* Far Right How-To Button */}
+                  <div className="border-l border-gray-300 h-6 mx-1"></div>
+                  <button
+                    onClick={() => handleTabClick('how-to')}
+                    className={`whitespace-nowrap flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors border cursor-pointer
+                      ${activeTab === 'how-to' ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
+                    `}
+                  >
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    How to use this site
+                  </button>
+
                 </nav>
               </div>
             </div>
@@ -1280,7 +1366,7 @@
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
             {/* Colour Legend displayed globally when data is loaded */}
-            {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && (
+            {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && activeTab !== 'how-to' && (
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm select-none">
                 <strong className="text-gray-800 uppercase tracking-wide text-xs">Colour Legend:</strong>
                 <div onClick={() => scrollToGroup('OI')} className="flex items-center cursor-pointer hover:opacity-70 transition-opacity" title="Click to scroll to OI"><span className="w-4 h-4 rounded bg-green-100 border border-green-300 mr-2"></span> Organizing Ideas (OI)</div>
@@ -1297,6 +1383,7 @@
 
             {activeTab === 'course' && renderCourseSelection()}
             {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'how-to' && renderHowToUse()}
             {activeTab === 'checklist' && items.length > 0 && renderChecklist()}
             
             {/* Render dynamic unit views */}

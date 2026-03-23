@@ -174,7 +174,7 @@
     };
 
     // HTML-to-Word exporter
-    const exportToWord = (unitName, items) => {
+    const exportToWord = (unitName, items, config) => {
       const categories = {
         understandings: items.filter(i => getCategory(i.code) === 'understandings'),
         knows: items.filter(i => getCategory(i.code) === 'knows'),
@@ -210,7 +210,13 @@
           <meta charset='utf-8'>
           <title>${unitName} Plan Template</title>
           <style>
+            @page {
+              size: 29.7cm 21cm;
+              mso-page-orientation: landscape;
+              margin: 2cm;
+            }
             body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; }
+            div.Section1 { page: Section1; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
             th, td { border: 1px solid #000; padding: 12px; vertical-align: top; }
             th { background-color: #e2e8f0; text-align: left; font-size: 14pt; }
@@ -223,12 +229,13 @@
           </style>
         </head>
         <body>
+          <div class="Section1">
           <h1>Understanding by Design (UbD) Unit Plan</h1>
           
           <table class="meta-table">
             <tr><th>Title of Unit</th><td><strong>${unitName}</strong></td></tr>
-            <tr><th>Grade Level</th><td></td></tr>
-            <tr><th>Subject</th><td></td></tr>
+            <tr><th>Grade Level</th><td><strong>${config && config.grade ? 'Grade ' + config.grade : ''}</strong></td></tr>
+            <tr><th>Subject</th><td><strong>${config && config.subject ? config.subject : ''}</strong></td></tr>
             <tr><th>Time Frame</th><td></td></tr>
             <tr><th>Developed By</th><td></td></tr>
           </table>
@@ -321,8 +328,8 @@
             <tr>
               <td colspan="6" class="instruction-text">
                 <p>Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
-                <p>What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way? What individual needs do you anticipate will need to be addressed?</p>
-                <p>Learning environment: Where can this learning best occur? How can the physical environment be arranged to enhance learning?</p>
+                <p>What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way?</p>
+                <p>What individual needs do you anticipate will need to be addressed?</p>
               </td>
             </tr>
             <tr>
@@ -351,12 +358,13 @@
             </tr>
             ${Array(10).fill('<tr><td><br><br></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
           </table>
+          </div>
         </body>
         </html>
       `;
 
       // Use html-docx-js to convert the HTML string into a true .docx Blob
-      const convertedBlob = window.htmlDocx.asBlob(html);
+      const convertedBlob = window.htmlDocx.asBlob(html, { orientation: 'landscape' });
       const url = URL.createObjectURL(convertedBlob);
       const link = document.createElement('a');
       link.href = url;
@@ -1429,7 +1437,7 @@
                   Back to Checklist
                 </button>
                 <button 
-                  onClick={() => exportToWord(unitName, unitItems)}
+                  onClick={() => exportToWord(unitName, unitItems, loadedConfig)}
                   disabled={unitItems.length === 0}
                   className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
                     ${unitItems.length > 0 

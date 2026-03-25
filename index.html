@@ -45,7 +45,7 @@
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { 
           parts: [{ 
-            text: "You are an expert Alberta curriculum planner and master teacher. Provide highly creative, practical, and pedagogical responses based on the Understanding by Design (UbD) framework." 
+            text: "You are an expert Alberta curriculum planner and master teacher. Provide highly creative, practical, and pedagogical responses based on the Understanding by Design (UbD) framework. Pay careful attention to the verbs used in the Skills & Procedures (SP). The verbs indicate what students must be able to do. Ensure plans, activities, tasks, and evaluations accurately reflect these verbs. Ensure that success criteria ('I can' statements) serve as targets for students so that they know and understand what success looks like." 
           }] 
         }
       };
@@ -512,8 +512,9 @@
       const [unitData, setUnitData] = useState({});
       const [activeTab, setActiveTab] = useState('course');
       const [searchTerm, setSearchTerm] = useState('');
+      const [hierarchyFilter, setHierarchyFilter] = useState('');
       const [saveStatus, setSaveStatus] = useState('');
-      const [showInstructions, setShowInstructions] = useState(true);
+      const [showInstructions, setShowInstructions] = useState(false);
       
       const [apiKey, setApiKey] = useState('');
       const [tempApiKey, setTempApiKey] = useState('');
@@ -602,6 +603,7 @@
         });
         setItems(clearedItems);
         setUnitData({}); // Clear generated content on reset
+        setHierarchyFilter('');
         localStorage.setItem('curriculumPlannerData', JSON.stringify({ items: clearedItems, loadedConfig, unitData: {} }));
         setShowResetConfirm(false);
       };
@@ -611,6 +613,7 @@
         setShowCourseConfirm(false);
         setLoadingData(true);
         setLoadError('');
+        setHierarchyFilter('');
         
         const subjectMap = {
           'Math': 'math',
@@ -696,6 +699,7 @@
         setShowCourseConfirm(false);
         setLoadingData(true);
         setLoadError('');
+        setHierarchyFilter('');
 
         const reader = new FileReader();
         reader.onload = (evt) => {
@@ -836,6 +840,7 @@
 
       const scrollToGroup = (groupNum) => {
         setSearchTerm(''); 
+        setHierarchyFilter('');
         
         const executeScroll = () => {
            const match = items.find(i => {
@@ -1022,12 +1027,33 @@
       };
 
       const filteredItems = useMemo(() => {
-        if (!searchTerm) return items;
-        return items.filter(item => 
-          item.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-          item.desc.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }, [items, searchTerm]);
+        let result = items;
+        
+        if (hierarchyFilter) {
+           const escapedFilter = hierarchyFilter.replace(/\./g, '\\.');
+           const regex = new RegExp(`(?:^|\\.|\\s)${escapedFilter}(?:$|\\.|\\s)`, 'i');
+           result = result.filter(item => regex.test(item.code));
+        }
+        
+        if (searchTerm) {
+          result = result.filter(item => 
+            item.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+            item.desc.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+        
+        return result;
+      }, [items, searchTerm, hierarchyFilter]);
+
+      const totalSelectedCount = useMemo(() => {
+        if (!loadedConfig) return 0;
+        return items.filter(item => {
+          for (let i = 1; i <= loadedConfig.numUnits; i++) {
+            if (item[`u${i}`]) return true;
+          }
+          return false;
+        }).length;
+      }, [items, loadedConfig]);
 
       // Highly efficient lookup map for badge tooltips
       const codeToDescMap = useMemo(() => {
@@ -1036,6 +1062,36 @@
           map[item.code] = item.desc;
         });
         return map;
+      }, [items]);
+
+      // Dynamically extract all filterable hierarchical groups
+      const filterGroups = useMemo(() => {
+        const groups = { OI: new Set(), GQ: new Set(), LO: new Set() };
+        items.forEach(item => {
+          const parts = item.code.split('.');
+          for (let i = 0; i < parts.length; i += 2) {
+             const prefix = parts[i];
+             const num = parts[i+1];
+             if (num) {
+                const fullCode = `${prefix}.${num}`;
+                if (prefix === 'OI') groups.OI.add(fullCode);
+                if (prefix === 'GQ') groups.GQ.add(fullCode);
+                if (prefix === 'LO') groups.LO.add(fullCode);
+             }
+          }
+        });
+        
+        const sortCodes = (arr) => arr.sort((a, b) => {
+           const numA = parseInt(a.split('.')[1] || 0, 10);
+           const numB = parseInt(b.split('.')[1] || 0, 10);
+           return numA - numB;
+        });
+
+        return {
+          OI: sortCodes(Array.from(groups.OI)),
+          GQ: sortCodes(Array.from(groups.GQ)),
+          LO: sortCodes(Array.from(groups.LO))
+        };
       }, [items]);
 
       // Dynamically detect how many LO/GQ groups exist in current dataset for the Legend
@@ -1559,23 +1615,16 @@
               </h2>
               <div className="flex items-center space-x-3">
                 <button 
-                  onClick={() => setShowInstructions(!showInstructions)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md border transition-colors ${showInstructions ? 'bg-eips-green/10 text-eips-green border-eips-green/30 hover:bg-eips-green/20' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                >
-                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  {showInstructions ? 'Hide Instructions' : 'Instructions'}
-                </button>
-                <button 
                   onClick={() => setShowResetConfirm(true)}
-                  className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors"
+                  className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors shadow-sm"
                 >
-                  Reset Checklist
+                  Reset
                 </button>
                 <button 
                   onClick={handleSaveProgress}
                   className="px-4 py-2 bg-eips-green text-white border border-transparent rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm"
                 >
-                  {saveStatus || 'Save Progress'}
+                  {saveStatus || 'Save'}
                 </button>
                 
                 {/* View Unit Plan Dropdown next to Save Progress */}
@@ -1585,7 +1634,7 @@
                       onChange={(e) => {
                         if (e.target.value) handleTabClick(e.target.value);
                       }}
-                      className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors hover:bg-gray-50"
+                      className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors hover:bg-gray-50 shadow-sm"
                    >
                       <option value="" disabled>View Unit Plan...</option>
                       {Array.from({length: unitCount}, (_, i) => (
@@ -1596,40 +1645,76 @@
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                    </div>
                 </div>
-
-                <input 
-                  type="text" 
-                  placeholder="Search codes or descriptions..." 
-                  className="border border-gray-300 rounded-md px-4 py-2 w-64 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
               </div>
             </div>
 
-            {/* Collapsible Instructions Banner */}
-            {showInstructions && (
-              <div className="bg-eips-green/5 border-b border-eips-green/20 px-6 py-4 shrink-0 relative z-40 flex justify-between items-start">
-                <div>
-                  <h3 className="font-bold text-eips-green text-sm mb-2 flex items-center">
-                    <svg className="w-5 h-5 text-eips-green mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    How to use this checklist:
-                  </h3>
+            {/* Collapsible Instructions Accordion */}
+            <div className="bg-eips-green/5 border-b border-eips-green/20 shrink-0 relative z-40">
+              <button 
+                onClick={() => setShowInstructions(!showInstructions)} 
+                className="w-full px-6 py-3 flex justify-between items-center text-left focus:outline-none hover:bg-eips-green/10 transition-colors"
+              >
+                <h3 className="font-bold text-eips-green text-sm flex items-center">
+                  <svg className="w-5 h-5 text-eips-green mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  How to use this checklist
+                </h3>
+                <svg className={`w-5 h-5 text-eips-green transform transition-transform duration-200 ${showInstructions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </button>
+              
+              {showInstructions && (
+                <div className="px-6 pb-4 pt-1">
                   <ul className="list-disc pl-7 text-sm text-gray-700 space-y-1.5 marker:text-eips-green">
                     <li><strong>Map Curriculum:</strong> Check boxes to assign items to specific units. Selecting a specific knowledge (K) or skill & procedure (SP) will automatically check its parent Understanding (U), Learning Outcome (LO), and Guiding Question (GQ).</li>
                     <li><strong>Track Coverage:</strong> The <em>Use Count</em> column shows a red '0' for unassigned items. Your goal is to ensure every item turns green by the end of the year.</li>
                     <li><strong>Generate Plans:</strong> When ready, use the <em>View Unit Plan...</em> dropdown in the top navigation bar to review your assembled units and download your pre-formatted Word Document template.</li>
                   </ul>
                 </div>
-                <button 
-                  onClick={() => setShowInstructions(false)} 
-                  className="text-gray-400 hover:text-eips-green transition-colors p-1"
-                  title="Dismiss Instructions"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Filters and Search Bar */}
+            <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap gap-3 items-center shrink-0 z-30 shadow-inner">
+               <span className="text-sm font-bold text-gray-700 mr-1 flex items-center">
+                 <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                 Filters:
+               </span>
+               <select
+                 value={hierarchyFilter.startsWith('OI') ? hierarchyFilter : ''}
+                 onChange={(e) => setHierarchyFilter(e.target.value)}
+                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
+               >
+                 <option value="">All Organizing Ideas</option>
+                 {filterGroups.OI.map(oi => <option key={oi} value={oi}>{oi}</option>)}
+               </select>
+
+               <select
+                 value={hierarchyFilter.startsWith('GQ') ? hierarchyFilter : ''}
+                 onChange={(e) => setHierarchyFilter(e.target.value)}
+                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
+               >
+                 <option value="">All Guiding Questions</option>
+                 {filterGroups.GQ.map(gq => <option key={gq} value={gq}>{gq}</option>)}
+               </select>
+
+               <select
+                 value={hierarchyFilter.startsWith('LO') ? hierarchyFilter : ''}
+                 onChange={(e) => setHierarchyFilter(e.target.value)}
+                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
+               >
+                 <option value="">All Learning Outcomes</option>
+                 {filterGroups.LO.map(lo => <option key={lo} value={lo}>{lo}</option>)}
+               </select>
+
+               <div className="border-l border-gray-300 h-6 mx-1 hidden md:block"></div>
+
+               <input 
+                 type="text" 
+                 placeholder="Search codes or descriptions..." 
+                 className="border border-gray-300 rounded-md px-4 py-1.5 flex-1 min-w-[200px] text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+               />
+            </div>
             
             {/* Split Scrolling System Implementation with Option 3 Card Groups */}
             <div className="overflow-hidden flex-1 flex flex-col relative bg-gray-50 rounded-b-lg">
@@ -1641,11 +1726,27 @@
               >
                 {/* Global Sticky Header (Flex based to match new structure) */}
                 <div className="flex w-max min-w-full bg-gray-100 border-b border-gray-300 sticky top-0 z-40 shadow-sm border-x border-transparent">
-                  <div className="w-[520px] shrink-0 px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-50 bg-gray-100 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)]">Curriculum Item</div>
-                  <div className="w-[100px] shrink-0 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Use Count</div>
-                  {Array.from({length: unitCount}, (_, i) => (
-                    <div key={`th-u${i+1}`} className="w-[80px] shrink-0 px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit {i+1}</div>
-                  ))}
+                  <div className="w-[520px] shrink-0 px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-50 bg-gray-100 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] flex items-center">
+                    Curriculum Item
+                  </div>
+                  <div className="w-[100px] shrink-0 px-4 py-2 flex flex-col items-center justify-center">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Use Count</span>
+                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title="Total Unique Items Mapped">
+                      {totalSelectedCount} / {items.length}
+                    </span>
+                  </div>
+                  {Array.from({length: unitCount}, (_, i) => {
+                    const uField = `u${i+1}`;
+                    const unitSelectedCount = items.filter(item => item[uField]).length;
+                    return (
+                      <div key={`th-u${i+1}`} className="w-[80px] shrink-0 px-2 py-2 flex flex-col items-center justify-center border-l border-gray-200/50">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Unit {i+1}</span>
+                        <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title={`Items assigned to Unit ${i+1}`}>
+                          {unitSelectedCount}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Grouped Cards Container */}
@@ -1676,7 +1777,7 @@
                   })}
                   {filteredItems.length === 0 && (
                     <div className="py-8 text-center text-gray-500 w-full">
-                      No items found matching your search.
+                      No items found matching your current filter or search.
                     </div>
                   )}
                 </div>

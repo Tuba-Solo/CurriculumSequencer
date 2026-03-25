@@ -88,9 +88,9 @@
         }
       } else {
         // --- ROUTE 2: Live Website Production ---
-        // Hardcoded to the proven 1.5-flash model. No loops, no cascades, just the direct connection that works.
+        // Hardcoded to the current stable model (gemini-2.5-flash)
         try {
-          return await attemptFetch('gemini-1.5-flash', apiKey.trim());
+          return await attemptFetch('gemini-2.5-flash', apiKey.trim());
         } catch (err) {
           throw new Error(`Google API Rejected: ${err.message}`);
         }

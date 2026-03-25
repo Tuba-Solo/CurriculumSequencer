@@ -52,7 +52,7 @@
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
+      const attemptFetch = async (modelName, keyToUse, retries = 1) => {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
         try {
           const response = await fetch(url, {
@@ -69,7 +69,13 @@
           const data = await response.json();
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
         } catch (error) {
-          if (retries > 0 && !error.message.includes('not found') && !error.message.includes('API key') && !error.message.includes('unregistered callers')) {
+          // Identify terminal errors that should not be retried on the same model
+          const isTerminalError = error.message.includes('not found') || 
+                                  error.message.includes('not supported') || 
+                                  error.message.includes('API key') ||
+                                  error.message.includes('unregistered callers');
+                                  
+          if (retries > 0 && !isTerminalError) {
             await new Promise(resolve => setTimeout(resolve, 1000));
             return attemptFetch(modelName, keyToUse, retries - 1);
           }
@@ -77,24 +83,43 @@
         }
       };
 
-      try {
-         // 1. Primary Attempt: Use the standard public model that works for personal API keys in production
-         return await attemptFetch('gemini-1.5-flash', apiKey || "");
-      } catch (err) {
-         // 2. Canvas Proxy Fallback: The internal testing Canvas strictly requires the preview model.
-         // If the proxy intercepts the public model, it throws a "not found" error.
-         if (err.message.includes('not found')) {
-            console.warn('Public model intercepted. Attempting Canvas environment preview model...');
-            try {
-               // Crucial: Pass the apiKey here too, so we never trigger an "unregistered caller" error
-               return await attemptFetch('gemini-2.5-flash-preview-09-2025', apiKey || "");
-            } catch (fallbackErr) {
-               throw new Error(fallbackErr.message);
+      if (!apiKey || apiKey.trim() === '') {
+        // --- ROUTE 1: Development Canvas Proxy ---
+        try {
+          return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
+        } catch (err) {
+          throw new Error(`Canvas Proxy Error: ${err.message}`);
+        }
+      } else {
+        // --- ROUTE 2: Live Website Production ---
+        // Cascade sequence: Starts with the newest Free Tier model and falls back through stable alternatives
+        const productionModels = [
+          'gemini-2.0-flash',        
+          'gemini-1.5-flash',        
+          'gemini-1.5-flash-latest', 
+          'gemini-1.5-pro'           
+        ];
+        
+        let lastErrorMsg = "";
+        
+        for (const model of productionModels) {
+          try {
+            return await attemptFetch(model, apiKey.trim());
+          } catch (err) {
+            lastErrorMsg = err.message;
+            const lowerErr = lastErrorMsg.toLowerCase();
+            
+            // If the key is outright rejected or out of quota, stop cascading and alert the user immediately
+            if (lowerErr.includes('api key not valid') || lowerErr.includes('api_key_invalid') || lowerErr.includes('quota') || lowerErr.includes('unregistered caller')) {
+              throw new Error(`Google API Rejected: ${lastErrorMsg}`);
             }
-         }
-         
-         // Bubble up any real errors (like Invalid API Key) directly to the UI
-         throw new Error(`Google API Rejected: ${err.message}`);
+            
+            // If it was just a "not found" (Google retired it) or "not supported", silently loop to the next model
+            console.warn(`Model ${model} unavailable, automatically trying next supported model...`);
+          }
+        }
+        
+        throw new Error(`All supported models failed. Last error: ${lastErrorMsg}`);
       }
     };
 

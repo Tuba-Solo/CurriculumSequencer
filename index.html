@@ -52,8 +52,12 @@
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
+      // Restore the exact model that worked previously and permanently remove the empty-key fallback logic
+      const modelName = 'gemini-2.5-flash-preview-09-2025';
+      const keyToUse = apiKey || "";
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
+
+      const attemptFetch = async (retries = 2) => {
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -69,28 +73,16 @@
           const data = await response.json();
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
         } catch (error) {
-          if (retries > 0 && !error.message.includes('not found') && !error.message.includes('API key') && !error.message.includes('not supported')) {
+          if (retries > 0 && !error.message.includes('not found') && !error.message.includes('API key') && !error.message.includes('unregistered callers')) {
             await new Promise(resolve => setTimeout(resolve, 1000));
-            return attemptFetch(modelName, keyToUse, retries - 1);
+            return attemptFetch(retries - 1);
           }
           throw error;
         }
       };
 
       try {
-        if (apiKey) {
-          try {
-            return await attemptFetch('gemini-1.5-flash', apiKey);
-          } catch (err) {
-            if (err.message.includes('not found') || err.message.includes('not supported')) {
-               console.warn("Canvas proxy intercepted the request. Falling back to internal environment key.");
-               return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
-            }
-            throw err;
-          }
-        } else {
-          return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
-        }
+         return await attemptFetch();
       } catch (finalError) {
          throw new Error(`Google API Rejected: ${finalError.message}`);
       }

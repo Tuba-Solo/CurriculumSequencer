@@ -517,6 +517,7 @@
       
       const [apiKey, setApiKey] = useState('');
       const [tempApiKey, setTempApiKey] = useState('');
+      const [showApiInstructions, setShowApiInstructions] = useState(false);
 
       // Custom Scrollbar References
       const tableRef = useRef(null);
@@ -1466,7 +1467,7 @@
         const unitCount = loadedConfig ? loadedConfig.numUnits : 0;
         
         // Helper for rendering Flex Rows (Option 3 Layout)
-        const renderRow = (item, type) => {
+        const renderRow = (item, type, isFirst = false, isLast = false) => {
           const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
           const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
           
@@ -1483,7 +1484,7 @@
             badges.push({ fullText: badgeText, prefix: parts[i], fullCode: currentCodePath });
           }
 
-          let rowClasses = "flex items-stretch transition-colors w-max min-w-full ";
+          let rowClasses = `flex items-stretch transition-colors w-max min-w-full ${isFirst ? 'rounded-t-lg ' : ''}${isLast ? 'rounded-b-lg ' : ''}`;
           let textClasses = "text-sm ";
           let bgClass = getCodeBgColor(item.code, false);
 
@@ -1511,7 +1512,7 @@
           return (
             <div id={`row-${item.id}`} key={item.id} className={rowClasses + bgClass}>
               {/* Combined Frozen sticky column */}
-              <div className={`w-[520px] shrink-0 px-5 py-4 sticky left-0 z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit flex flex-row items-start`}>
+              <div className={`w-[520px] shrink-0 px-5 py-4 sticky left-0 z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit flex flex-row items-start ${isFirst ? 'rounded-tl-lg ' : ''}${isLast ? 'rounded-bl-lg ' : ''}`}>
                 <div className="flex flex-row items-start flex-nowrap gap-1 shrink-0 mt-0.5 mr-4">
                   {badges.map((badge, idx) => (
                      <button 
@@ -1534,8 +1535,9 @@
               </div>
               {Array.from({length: unitCount}, (_, i) => {
                 const uField = `u${i+1}`;
+                const isLastCol = i === unitCount - 1;
                 return (
-                  <div key={uField} className="w-[80px] shrink-0 px-4 py-4 flex justify-center items-start border-l border-gray-200/50">
+                  <div key={uField} className={`w-[80px] shrink-0 px-4 py-4 flex justify-center items-start border-l border-gray-200/50 ${isFirst && isLastCol ? 'rounded-tr-lg ' : ''}${isLast && isLastCol ? 'rounded-br-lg ' : ''}`}>
                     <input
                       type="checkbox"
                       className="h-5 w-5 text-eips-green focus:ring-eips-green border-gray-400 rounded cursor-pointer mt-0.5"
@@ -1651,25 +1653,25 @@
                   {groupedCards.map((group, index) => {
                     if (group.type === 'oi') {
                       return (
-                        <div className="mb-6 border border-gray-300 rounded-lg shadow-md overflow-hidden flex flex-col w-max min-w-full" key={group.item.id}>
-                          {renderRow(group.item, 'oi')}
+                        <div className="mb-6 border border-gray-300 rounded-lg shadow-md flex flex-col w-max min-w-full" key={group.item.id}>
+                          {renderRow(group.item, 'oi', true, true)}
                         </div>
                       );
                     } else if (group.type === 'gq') {
                       return (
-                        <div className="mb-6 border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col w-max min-w-full" key={group.item.id}>
-                          {renderRow(group.item, 'gq')}
+                        <div className="mb-6 border border-gray-200 rounded-lg shadow-sm flex flex-col w-max min-w-full" key={group.item.id}>
+                          {renderRow(group.item, 'gq', true, true)}
                         </div>
                       );
                     } else if (group.type === 'lo_card') {
                       return (
-                        <div className="mb-8 bg-white border border-gray-300 rounded-lg shadow-sm flex flex-col w-max min-w-full overflow-hidden" key={`card-${index}`}>
-                          {renderRow(group.header, 'lo')}
-                          {group.children.map(child => renderRow(child, 'child'))}
+                        <div className="mb-8 bg-white border border-gray-300 rounded-lg shadow-sm flex flex-col w-max min-w-full" key={`card-${index}`}>
+                          {renderRow(group.header, 'lo', true, group.children.length === 0)}
+                          {group.children.map((child, i) => renderRow(child, 'child', false, i === group.children.length - 1))}
                         </div>
                       );
                     } else {
-                      return renderRow(group.item, 'orphan');
+                      return renderRow(group.item, 'orphan', true, true);
                     }
                   })}
                   {filteredItems.length === 0 && (
@@ -1835,9 +1837,27 @@
                       Save Key
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 mt-3">
                     Don't have one? Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
+                    <button onClick={() => setShowApiInstructions(!showApiInstructions)} className="ml-2 text-indigo-500 hover:text-indigo-700 underline focus:outline-none">
+                      {showApiInstructions ? 'Hide instructions' : 'How do I get a key?'}
+                    </button>
                   </p>
+
+                  {showApiInstructions && (
+                    <div className="mt-3 p-4 bg-indigo-50 rounded border border-indigo-100 text-sm text-gray-800">
+                      <h4 className="font-bold text-indigo-900 mb-2">How to create your free API key:</h4>
+                      <ol className="list-decimal pl-5 space-y-1.5">
+                        <li>Click the Google AI Studio link above and <strong>Sign In</strong> with your Google/Gmail account.</li>
+                        <li>On the left side of the screen, click <strong>Get API key</strong>.</li>
+                        <li>Click the big blue <strong>Create API key</strong> button.</li>
+                        <li>In the box that pops up, click the <strong>Create API key in new project</strong> button.</li>
+                        <li>Wait a few seconds for the system to create a long password made of letters and numbers (this is your API key), then click <strong>Copy</strong> next to it.</li>
+                        <li>Come back to this unit planner page, paste that password into the box above, and click <strong>Save Key</strong>.</li>
+                      </ol>
+                    </div>
+                  )}
+
                 </div>
               ) : (
                 <>

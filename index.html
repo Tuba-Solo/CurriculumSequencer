@@ -39,8 +39,6 @@
 
     // --- Gemini API Integration ---
     const generateGeminiContent = async (prompt, apiKey, expectJson = false) => {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { 
@@ -54,41 +52,88 @@
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      const fetchWithRetry = async (retries = 5, delay = 1000) => {
+      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
         try {
           const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData?.error?.message || `HTTP Error ${response.status}`);
+          }
+          
           const data = await response.json();
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
         } catch (error) {
-          if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(retries - 1, delay * 2);
-          } else {
-            throw new Error("Failed to generate content after multiple attempts. Please try again later.");
+          if (retries > 0 && !error.message.includes('not found') && !error.message.includes('API key') && !error.message.includes('not supported')) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return attemptFetch(modelName, keyToUse, retries - 1);
           }
+          throw error;
         }
       };
 
-      return await fetchWithRetry();
+      try {
+        if (apiKey) {
+          try {
+            return await attemptFetch('gemini-1.5-flash', apiKey);
+          } catch (err) {
+            if (err.message.includes('not found') || err.message.includes('not supported')) {
+               console.warn("Canvas proxy intercepted the request. Falling back to internal environment key.");
+               return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
+            }
+            throw err;
+          }
+        } else {
+          return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
+        }
+      } catch (finalError) {
+         throw new Error(`Google API Rejected: ${finalError.message}`);
+      }
     };
 
     // --- Utility Functions ---
-
     const parseLLMResponse = (text) => {
        try {
           const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
-          return JSON.parse(cleaned);
+          const parsed = JSON.parse(cleaned);
+
+          const normalize = (obj) => {
+             if (obj === null || obj === undefined) return '';
+             if (typeof obj === 'string') return obj;
+             if (Array.isArray(obj)) return obj.map(item => normalize(item)).join('\n');
+             if (typeof obj === 'object') {
+                 return Object.entries(obj).map(([k, v]) => `${k}: ${normalize(v)}`).join('\n');
+             }
+             return String(obj);
+          };
+
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              if ('scenario' in parsed) parsed.scenario = normalize(parsed.scenario);
+              if ('elements' in parsed) parsed.elements = normalize(parsed.elements);
+              if ('evaluativeCriteria' in parsed) parsed.evaluativeCriteria = normalize(parsed.evaluativeCriteria);
+          }
+
+          if (Array.isArray(parsed)) {
+             parsed.forEach(item => {
+                 if ('title' in item) item.title = normalize(item.title);
+                 if ('description' in item) item.description = normalize(item.description);
+                 if ('kusps' in item) item.kusps = normalize(item.kusps);
+                 if ('competencies' in item) item.competencies = normalize(item.competencies);
+                 if ('successCriteria' in item) item.successCriteria = normalize(item.successCriteria);
+             });
+          }
+
+          return parsed;
        } catch (e) {
           throw new Error("Failed to parse the AI response format. Please try generating again.");
        }
     };
 
-    // Robust CSV Parser
     function parseCSV(text) {
       const result = [];
       let cur = '';
@@ -125,28 +170,23 @@
       return result;
     }
 
-    // Logic to categorize based on specific code presence
     const getCategory = (code) => {
       if (!code) return 'other';
       const parts = code.toUpperCase().split('.');
-      
       const hasU = parts.some(p => p === 'U' || /^U\d+/.test(p));
       const hasK = parts.some(p => p === 'K' || /^K\d+/.test(p));
       const hasSP = parts.some(p => p === 'SP' || /^SP\d+/.test(p));
       const hasLO = parts.some(p => p === 'LO' || /^LO\d+/.test(p));
       const hasGQ = parts.some(p => p === 'GQ' || /^GQ\d+/.test(p));
 
-      // Reverse priority check: deepest nested elements first
       if (hasK) return 'knows';
       if (hasSP) return 'skills';
       if (hasU) return 'understandings';
       if (hasLO) return 'goals';
       if (hasGQ) return 'questions';
-      
       return 'other'; 
     };
 
-    // Extended Colour Palette for dynamic scaling
     const colorPalette = [
       { light: 'bg-blue-100', hover: 'hover:bg-blue-200', border: 'border-blue-300' },
       { light: 'bg-orange-100', hover: 'hover:bg-orange-200', border: 'border-orange-300' },
@@ -162,27 +202,20 @@
       { light: 'bg-emerald-100', hover: 'hover:bg-emerald-200', border: 'border-emerald-300' }
     ];
 
-    // Consolidated Colour Mapping Logic
     const getCodeBgColor = (code, isHoverable = false) => {
       const upperCode = code.toUpperCase();
-      
-      // Match LO.# or GQ.# to assign specific colour dynamically
       const match = upperCode.match(/(?:LO|GQ)\.(\d+)/);
       if (match) {
          const num = parseInt(match[1], 10);
          const colorObj = colorPalette[(num - 1) % colorPalette.length];
          return isHoverable ? `${colorObj.light} ${colorObj.hover}` : colorObj.light;
       }
-      
-      // Broad OI fallback logic
       if (!upperCode.includes('LO') && !upperCode.includes('GQ')) {
          return isHoverable ? 'bg-green-100 hover:bg-green-200' : 'bg-green-100';
       }
-      
-      return isHoverable ? 'bg-white hover:brightness-95' : 'bg-gray-50'; // Fallbacks
+      return isHoverable ? 'bg-white hover:brightness-95' : 'bg-gray-50';
     };
 
-    // Helper to assign specific badge colours to the Code Prefix
     const getHierarchyBadgeColor = (prefix) => {
       switch(prefix) {
         case 'OI': return 'bg-green-100 text-green-800 border-green-300';
@@ -195,15 +228,10 @@
       }
     };
 
-    // Formats curriculum descriptions to isolate and render bullet points properly
     const FormattedDescription = ({ text, className }) => {
       if (!text) return null;
-      
-      // Splits the text whenever it sees a hyphen followed by a space, preceded by whitespace or start of string
       const parts = text.split(/(?=(?:^|\s)- )/g);
-      
       if (parts.length === 1) return <span className={className}>{text}</span>;
-
       return (
         <div className={className}>
           {parts.map((part, index) => {
@@ -222,7 +250,6 @@
       );
     };
 
-    // HTML-to-Word exporter (Native MS Word XML Compiler)
     const exportToWord = (unitName, items, config, unitDataForExport) => {
       const categories = {
         understandings: items.filter(i => getCategory(i.code) === 'understandings'),
@@ -239,7 +266,6 @@
       const renderList = (list) => {
         if (!list || list.length === 0) return '<p><i>None selected</i></p>';
         return `<ul>${list.map(i => {
-          // Format text for word export to respect bulleted items
           let descHtml = i.desc;
           const parts = descHtml.split(/(?=(?:^|\s)- )/g);
           if (parts.length > 1) {
@@ -294,7 +320,6 @@
         <body>
           <div class="WordSection1">
           <h1>Understanding by Design (UbD) Unit Plan</h1>
-          
           <table class="meta-table">
             <tr><th>Title of Unit</th><td><strong>${unitName}</strong></td></tr>
             <tr><th>Grade Level</th><td><strong>${config && config.grade ? 'Grade ' + config.grade : ''}</strong></td></tr>
@@ -302,44 +327,22 @@
             <tr><th>Time Frame</th><td></td></tr>
             <tr><th>Developed By</th><td></td></tr>
           </table>
-          
           <table>
-            <tr>
-              <th colspan="2">Stage 1 - Desired Results</th>
-            </tr>
+            <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
             <tr>
               <td colspan="2">
                 <h2>LEARNING OUTCOMES (LO)</h2>
                 ${renderList(categories.goals)}
-                
-                ${categories.other.length > 0 ? `
-                  <h2 style="margin-top: 15px;">ORGANIZING IDEAS (OI)</h2>
-                  ${renderList(categories.other)}
-                ` : ''}
+                ${categories.other.length > 0 ? `<h2 style="margin-top: 15px;">ORGANIZING IDEAS (OI)</h2>${renderList(categories.other)}` : ''}
               </td>
             </tr>
             <tr>
-              <td style="width: 50%;">
-                <h2>UNDERSTANDINGS</h2>
-                <p><i>Students will understand that...</i></p>
-                ${renderList(categories.understandings)}
-              </td>
-              <td style="width: 50%;">
-                <h2>GUIDING QUESTIONS (GQ)</h2>
-                ${renderList(categories.questions)}
-              </td>
+              <td style="width: 50%;"><h2>UNDERSTANDINGS</h2><p><i>Students will understand that...</i></p>${renderList(categories.understandings)}</td>
+              <td style="width: 50%;"><h2>GUIDING QUESTIONS (GQ)</h2>${renderList(categories.questions)}</td>
             </tr>
             <tr>
-              <td style="width: 50%;">
-                <h2>KNOWLEDGE</h2>
-                <p><i>Students will know...</i></p>
-                ${renderList(categories.knows)}
-              </td>
-              <td style="width: 50%;">
-                <h2>SKILLS & PROCEDURES</h2>
-                <p><i>Students will be able to...</i></p>
-                ${renderList(categories.skills)}
-              </td>
+              <td style="width: 50%;"><h2>KNOWLEDGE</h2><p><i>Students will know...</i></p>${renderList(categories.knows)}</td>
+              <td style="width: 50%;"><h2>SKILLS & PROCEDURES</h2><p><i>Students will be able to...</i></p>${renderList(categories.skills)}</td>
             </tr>
             <tr>
               <td colspan="2">
@@ -349,7 +352,6 @@
               </td>
             </tr>
           </table>
-          
           <table>
             <tr><th colspan="3">Stage 2 - Assessment Evidence</th></tr>
             <tr>
@@ -360,14 +362,8 @@
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%;">
-                <strong>Evaluative Criteria</strong><br><br>
-                ${pt ? pt.evaluativeCriteria.replace(/\n/g, '<br>') : '<br><br><br><br>'}
-              </td>
-              <td colspan="2" style="width: 66.66%;">
-                <strong>Elements of the Performance Task</strong><br><br>
-                ${pt ? pt.elements.replace(/\n/g, '<br>') : '<br><br><br><br>'}
-              </td>
+              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br>${pt ? pt.evaluativeCriteria.replace(/\n/g, '<br>') : '<br><br><br><br>'}</td>
+              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br>${pt ? pt.elements.replace(/\n/g, '<br>') : '<br><br><br><br>'}</td>
             </tr>
             <tr>
               <td colspan="3">
@@ -381,30 +377,19 @@
               <td style="width: 33.33%;"><strong>Conversation, Observation, or Product?</strong><br><br><br><br></td>
             </tr>
             <tr>
-              <td colspan="3">
-                <h2>Student Self-Assessment</h2>
-                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
-              </td>
+              <td colspan="3"><h2>Student Self-Assessment</h2><p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p></td>
             </tr>
-            <tr>
-              <td colspan="3"><br><br><br><br><br></td>
-            </tr>
+            <tr><td colspan="3"><br><br><br><br><br></td></tr>
           </table>
-          
           <table>
             <tr><th colspan="7">Stage 3 - Learning Plan</th></tr>
             <tr>
               <td colspan="7" class="instruction-text">
                 <p>What teaching and learning experiences will you use to:</p>
-                <ul>
-                  <li>achieve the desired results identified in Stage 1?</li>
-                  <li>equip students to complete the assessment tasks identified in Stage 2?</li>
-                </ul>
+                <ul><li>achieve the desired results identified in Stage 1?</li><li>equip students to complete the assessment tasks identified in Stage 2?</li></ul>
               </td>
             </tr>
-            <tr>
-              <td colspan="7"><br><br><br><br><br><br></td>
-            </tr>
+            <tr><td colspan="7"><br><br><br><br><br><br></td></tr>
             <tr>
               <td colspan="7" class="instruction-text">
                 <p style="margin-bottom: 8px;">Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
@@ -412,22 +397,10 @@
                 <p>What individual needs do you anticipate will need to be addressed?</p>
               </td>
             </tr>
-            <tr>
-              <td colspan="7"><br><br><br><br><br><br></td>
-            </tr>
-            <tr>
-              <td colspan="7" class="instruction-text">
-                <p>How will you engage students at the beginning of the unit?</p>
-              </td>
-            </tr>
-            <tr>
-              <td colspan="7"><br><br><br><br><br><br></td>
-            </tr>
-            <tr>
-              <td colspan="7" class="instruction-text">
-                <p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p>
-              </td>
-            </tr>
+            <tr><td colspan="7"><br><br><br><br><br><br></td></tr>
+            <tr><td colspan="7" class="instruction-text"><p>How will you engage students at the beginning of the unit?</p></td></tr>
+            <tr><td colspan="7"><br><br><br><br><br><br></td></tr>
+            <tr><td colspan="7" class="instruction-text"><p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p></td></tr>
             <tr>
               <th style="width: 5%; background-color: #e2e8f0; font-size: 11pt;">#</th>
               <th style="width: 15%; background-color: #e2e8f0; font-size: 11pt;">Lesson Title</th>
@@ -478,18 +451,9 @@
             onClick={() => setIsOpen(!isOpen)}
           >
             <span className="font-bold text-gray-800 text-base">{title}</span>
-            <svg 
-              className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
-              fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <svg className={`w-5 h-5 text-gray-500 transform transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
           </button>
-          {isOpen && (
-            <div className="px-5 py-4 text-gray-700 text-sm md:text-base leading-relaxed border-t border-gray-200 bg-white">
-              {children}
-            </div>
-          )}
+          {isOpen && <div className="px-5 py-4 text-gray-700 text-sm md:text-base leading-relaxed border-t border-gray-200 bg-white">{children}</div>}
         </div>
       );
     };
@@ -520,6 +484,10 @@
       const [tempApiKey, setTempApiKey] = useState('');
       const [showApiInstructions, setShowApiInstructions] = useState(false);
 
+      // AI Tool Intermediate State
+      const [activeAiTool, setActiveAiTool] = useState(null);
+      const [customInstruction, setCustomInstruction] = useState('');
+
       // Custom Scrollbar References
       const tableRef = useRef(null);
       const scrollRef = useRef(null);
@@ -546,7 +514,6 @@
         'Career Education and Financial Literacy': 'cefl.svg'
       };
 
-      // Automatically load saved data when returning to the page
       useEffect(() => {
         const savedKey = localStorage.getItem('geminiApiKey');
         if (savedKey) {
@@ -602,13 +569,12 @@
           return newItem;
         });
         setItems(clearedItems);
-        setUnitData({}); // Clear generated content on reset
+        setUnitData({}); 
         setHierarchyFilter('');
         localStorage.setItem('curriculumPlannerData', JSON.stringify({ items: clearedItems, loadedConfig, unitData: {} }));
         setShowResetConfirm(false);
       };
 
-      // Executes the fetch for the selected CSV file
       const executeLoadCourse = async () => {
         setShowCourseConfirm(false);
         setLoadingData(true);
@@ -626,14 +592,10 @@
         
         try {
           const res = await fetch(fileName);
-          if (!res.ok) {
-             throw new Error(`Could not find file: ${fileName}. Please ensure it is saved in the same directory as this index file.`);
-          }
+          if (!res.ok) throw new Error(`Could not find file: ${fileName}. Please ensure it is saved in the same directory as this index file.`);
           const text = await res.text();
           const parsed = parseCSV(text);
           
-          // --- NORMALIZATION ENGINE ---
-          // Dynamically fixes older CSV formats (like Social 7) that omit the "U.x" code from K and SP rows.
           let lastUReplacement = 'U.1';
 
           const data = parsed.slice(1)
@@ -647,17 +609,12 @@
               const isK = /(?:^|\.)K\.\d+(?:$|\.)/.test(upperCode);
               const isSP = /(?:^|\.)SP\.\d+(?:$|\.)/.test(upperCode);
 
-              // Reset our parent "U" tracker whenever a new Learning Outcome is reached
-              if (isLO) {
-                lastUReplacement = 'U.1'; 
-              }
-              // Update our parent "U" tracker if we hit a new Understanding
+              if (isLO) lastUReplacement = 'U.1'; 
               if (isU) {
                 const uMatch = upperCode.match(/U\.\d+/);
                 if (uMatch) lastUReplacement = uMatch[0];
               }
 
-              // If a Knowledge or Skill is missing its "U", inject the last tracked "U" into its code
               if ((isK || isSP) && !/(?:^|\.)U\.\d+/.test(upperCode)) {
                 code = code.replace(/(K\.\d+|SP\.\d+)/i, `${lastUReplacement}.$1`);
               }
@@ -684,14 +641,10 @@
       };
 
       const handleLoadClick = () => {
-        if (items.length > 0) {
-           setShowCourseConfirm(true);
-        } else {
-           executeLoadCourse();
-        }
+        if (items.length > 0) setShowCourseConfirm(true);
+        else executeLoadCourse();
       };
 
-      // Handler for manual CSV file uploads
       const handleManualUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -707,7 +660,6 @@
             const text = evt.target.result;
             const parsed = parseCSV(text);
             
-            // --- NORMALIZATION ENGINE ---
             let lastUReplacement = 'U.1';
 
             const data = parsed.slice(1)
@@ -743,7 +695,6 @@
               });
               
             setItems(data);
-            // Uses the currently selected dropdowns (Grade, Subject, Num Units) for the config labels
             setLoadedConfig(appConfig);
             setActiveTab('checklist');
           } catch (err) {
@@ -757,12 +708,9 @@
           setLoadingData(false);
         };
         reader.readAsText(file);
-        
-        // Reset the file input so the same file can be uploaded again if needed
         e.target.value = null;
       };
 
-      // Custom synced horizontal scrolling behavior 
       const handleTableScroll = (e) => {
         if (scrollRef.current && scrollRef.current.scrollLeft !== e.target.scrollLeft) {
           scrollRef.current.scrollLeft = e.target.scrollLeft;
@@ -798,19 +746,14 @@
            }
         }
 
-        // If a U, K, or SP is selected, auto-select its corresponding OI, LO, GQ, and parent U (if applicable)
         const isChild = cat === 'understandings' || cat === 'knows' || cat === 'skills';
         if (newState === true && isChild) {
-           // Extract the exact parent prefixes directly from the string to support any level of nesting
            const oiMatch = code.match(/(.*?OI\.\d+)/);
            if (oiMatch) parentMatchFns.push((i) => i.code === oiMatch[1]);
-
            const gqMatch = code.match(/(.*?GQ\.\d+)/);
            if (gqMatch) parentMatchFns.push((i) => i.code === gqMatch[1]);
-
            const loMatch = code.match(/(.*?LO\.\d+)/);
            if (loMatch) parentMatchFns.push((i) => i.code === loMatch[1]);
-
            const uMatch = code.match(/(.*?U\.\d+)/);
            if (uMatch && (cat === 'knows' || cat === 'skills')) {
               parentMatchFns.push((i) => i.code === uMatch[1]);
@@ -841,13 +784,11 @@
       const scrollToGroup = (groupNum) => {
         setSearchTerm(''); 
         setHierarchyFilter('');
-        
         const executeScroll = () => {
            const match = items.find(i => {
               if (groupNum === 'OI') return !i.code.includes('LO') && !i.code.includes('GQ');
               return i.code.includes(`LO.${groupNum}`) || i.code.includes(`GQ.${groupNum}`);
            });
-           
            if (match) {
               const el = document.getElementById(`row-${match.id}`);
               if (el) {
@@ -859,7 +800,6 @@
               }
            }
         };
-
         if (activeTab !== 'checklist') {
            setActiveTab('checklist');
            setTimeout(executeScroll, 150); 
@@ -870,10 +810,8 @@
 
       const scrollToItem = (targetFullCode) => {
         setSearchTerm(''); 
-        
         const executeScroll = () => {
            const match = items.find(i => i.code === targetFullCode);
-           
            if (match) {
               const el = document.getElementById(`row-${match.id}`);
               if (el) {
@@ -885,7 +823,6 @@
               }
            }
         };
-
         if (activeTab !== 'checklist') {
            setActiveTab('checklist');
            setTimeout(executeScroll, 150); 
@@ -898,7 +835,6 @@
         if (activeTab === 'checklist' && tab !== 'checklist') {
           const savedData = localStorage.getItem('curriculumPlannerData');
           const currentData = JSON.stringify({ items, loadedConfig, unitData });
-          
           if (items.length > 0 && savedData !== currentData) {
             setPendingTab(tab);
             setShowSavePrompt(true);
@@ -906,13 +842,13 @@
           }
         }
         setActiveTab(tab);
+        setActiveAiTool(null);
+        setCustomInstruction('');
       };
 
-      // --- LLM Assistant Handlers ---
       const buildPromptContext = (unitItems) => {
         let contextText = `I am planning a Unit for Grade ${loadedConfig.grade} ${loadedConfig.subject}.\n\n`;
         contextText += `Here are the specific curriculum outcomes I have selected for this unit:\n`;
-        
         unitItems.forEach(item => {
            const cat = getCategory(item.code);
            if (cat === 'goals' || cat === 'understandings' || cat === 'knows' || cat === 'skills') {
@@ -924,11 +860,13 @@
 
       const handleGeneratePerformanceTask = async (unitItems, unitNum) => {
         if (!apiKey) return;
-        
+        setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'pt', unitNum, selectedIndices: [], title: 'Drafting Performance Task...', content: null, isLoading: true, error: '' });
         
         const context = buildPromptContext(unitItems);
-        const prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.\n\nYou MUST return ONLY a valid JSON object with exactly three string keys:\n1. "scenario": The learning activity in story form.\n2. "elements": The specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": By what criteria the performance will be judged.`;
+        let prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.`;
+        if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three string keys:\n1. "scenario": The learning activity in story form.\n2. "elements": The specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": By what criteria the performance will be judged.`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -941,7 +879,7 @@
 
       const handleGenerateLessonIdeas = async (unitItems, unitNum) => {
         if (!apiKey) return;
-        
+        setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'lessons', unitNum, selectedIndices: [], title: 'Brainstorming Lesson Ideas...', content: null, isLoading: true, error: '' });
         
         const context = buildPromptContext(unitItems);
@@ -949,11 +887,11 @@
         
         let targetGrade = "a lower";
         const parsedGrade = parseInt(loadedConfig.grade);
-        if (!isNaN(parsedGrade)) {
-            targetGrade = `a Grade ${Math.max(1, parsedGrade - 1)}`;
-        }
+        if (!isNaN(parsedGrade)) targetGrade = `a Grade ${Math.max(1, parsedGrade - 1)}`;
 
-        const prompt = `${context}\n\nPlease brainstorm 5 creative, highly engaging lesson activities for this unit. For 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
+        let prompt = `${context}\n\nPlease brainstorm 5 creative, highly engaging lesson activities for this unit. For 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.`;
+        if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -967,9 +905,7 @@
       const handleSelectLesson = (idx) => {
         setLlmModal(prev => {
           const isSelected = prev.selectedIndices.includes(idx);
-          const newIndices = isSelected 
-             ? prev.selectedIndices.filter(i => i !== idx) 
-             : [...prev.selectedIndices, idx];
+          const newIndices = isSelected ? prev.selectedIndices.filter(i => i !== idx) : [...prev.selectedIndices, idx];
           return { ...prev, selectedIndices: newIndices };
         });
       };
@@ -978,10 +914,7 @@
         if (llmModal.type === 'pt') {
            setUnitData(prev => ({
               ...prev,
-              [llmModal.unitNum]: {
-                 ...(prev[llmModal.unitNum] || {}),
-                 performanceTask: llmModal.content
-              }
+              [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), performanceTask: llmModal.content }
            }));
         } else if (llmModal.type === 'lessons') {
            const selectedLessons = llmModal.selectedIndices.map(i => llmModal.content[i]);
@@ -989,18 +922,12 @@
               const existing = prev[llmModal.unitNum]?.lessons || [];
               return {
                  ...prev,
-                 [llmModal.unitNum]: {
-                    ...(prev[llmModal.unitNum] || {}),
-                    lessons: [...existing, ...selectedLessons]
-                 }
+                 [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), lessons: [...existing, ...selectedLessons] }
               };
            });
         }
-        
         setLlmModal(prev => ({ ...prev, title: 'Added to Lesson Template!', isLoading: false }));
-        setTimeout(() => {
-           setLlmModal(prev => ({ ...prev, isOpen: false }));
-        }, 1500);
+        setTimeout(() => { setLlmModal(prev => ({ ...prev, isOpen: false })); }, 1500);
       };
 
       const copyLlmContent = () => {
@@ -1011,7 +938,6 @@
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
             textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
         }
-
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
         document.body.appendChild(textArea);
@@ -1021,50 +947,53 @@
         
         const originalTitle = llmModal.title;
         setLlmModal(prev => ({ ...prev, title: 'Copied to Clipboard!' }));
-        setTimeout(() => {
-          setLlmModal(prev => ({ ...prev, title: originalTitle }));
-        }, 2000);
+        setTimeout(() => { setLlmModal(prev => ({ ...prev, title: originalTitle })); }, 2000);
       };
 
       const filteredItems = useMemo(() => {
         let result = items;
-        
         if (hierarchyFilter) {
            const escapedFilter = hierarchyFilter.replace(/\./g, '\\.');
            const regex = new RegExp(`(?:^|\\.|\\s)${escapedFilter}(?:$|\\.|\\s)`, 'i');
            result = result.filter(item => regex.test(item.code));
         }
-        
         if (searchTerm) {
-          result = result.filter(item => 
-            item.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            item.desc.toLowerCase().includes(searchTerm.toLowerCase())
-          );
+          result = result.filter(item => item.code.toLowerCase().includes(searchTerm.toLowerCase()) || item.desc.toLowerCase().includes(searchTerm.toLowerCase()));
         }
-        
         return result;
       }, [items, searchTerm, hierarchyFilter]);
 
+      const trackableItems = useMemo(() => {
+         const kuspItems = items.filter(i => {
+            const cat = getCategory(i.code);
+            return cat === 'knows' || cat === 'skills' || cat === 'understandings';
+         });
+         if (kuspItems.length > 0) return kuspItems;
+         const loItems = items.filter(i => {
+            const cat = getCategory(i.code);
+            return cat !== 'other' && cat !== 'questions';
+         });
+         if (loItems.length > 0) return loItems;
+         return items;
+      }, [items]);
+
+      const totalTrackableCount = trackableItems.length;
       const totalSelectedCount = useMemo(() => {
         if (!loadedConfig) return 0;
-        return items.filter(item => {
+        return trackableItems.filter(item => {
           for (let i = 1; i <= loadedConfig.numUnits; i++) {
             if (item[`u${i}`]) return true;
           }
           return false;
         }).length;
-      }, [items, loadedConfig]);
+      }, [trackableItems, loadedConfig]);
 
-      // Highly efficient lookup map for badge tooltips
       const codeToDescMap = useMemo(() => {
         const map = {};
-        items.forEach(item => {
-          map[item.code] = item.desc;
-        });
+        items.forEach(item => { map[item.code] = item.desc; });
         return map;
       }, [items]);
 
-      // Dynamically extract all filterable hierarchical groups
       const filterGroups = useMemo(() => {
         const groups = { OI: new Set(), GQ: new Set(), LO: new Set() };
         items.forEach(item => {
@@ -1080,60 +1009,41 @@
              }
           }
         });
-        
-        const sortCodes = (arr) => arr.sort((a, b) => {
-           const numA = parseInt(a.split('.')[1] || 0, 10);
-           const numB = parseInt(b.split('.')[1] || 0, 10);
-           return numA - numB;
-        });
-
-        return {
-          OI: sortCodes(Array.from(groups.OI)),
-          GQ: sortCodes(Array.from(groups.GQ)),
-          LO: sortCodes(Array.from(groups.LO))
-        };
+        const sortCodes = (arr) => arr.sort((a, b) => parseInt(a.split('.')[1] || 0, 10) - parseInt(b.split('.')[1] || 0, 10));
+        return { OI: sortCodes(Array.from(groups.OI)), GQ: sortCodes(Array.from(groups.GQ)), LO: sortCodes(Array.from(groups.LO)) };
       }, [items]);
 
-      // Dynamically detect how many LO/GQ groups exist in current dataset for the Legend
       const activeGroups = useMemo(() => {
         const groups = new Set();
         items.forEach(item => {
           const match = item.code.toUpperCase().match(/(?:LO|GQ)\.(\d+)/);
-          if (match) {
-            groups.add(parseInt(match[1], 10));
-          }
+          if (match) groups.add(parseInt(match[1], 10));
         });
         return Array.from(groups).sort((a, b) => a - b);
       }, [items]);
 
-      // Option 3 grouping logic
       const groupedCards = useMemo(() => {
         const groups = [];
         let currentCard = null;
-
         filteredItems.forEach(item => {
           const cat = getCategory(item.code);
-          if (cat === 'other') { // OI
+          if (cat === 'other') {
             groups.push({ type: 'oi', item });
             currentCard = null;
-          } else if (cat === 'questions') { // GQ
+          } else if (cat === 'questions') {
             groups.push({ type: 'gq', item });
             currentCard = null;
-          } else if (cat === 'goals') { // LO
+          } else if (cat === 'goals') {
             currentCard = { type: 'lo_card', header: item, children: [] };
             groups.push(currentCard);
-          } else { // U, K, SP
-            if (currentCard) {
-              currentCard.children.push(item);
-            } else {
-              groups.push({ type: 'orphan', item });
-            }
+          } else {
+            if (currentCard) currentCard.children.push(item);
+            else groups.push({ type: 'orphan', item });
           }
         });
         return groups;
       }, [filteredItems]);
 
-      // View Components
       const renderCourseSelection = () => (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg shadow-sm border border-gray-200">
           <img src="EIPS_Vertical_RGB.png" alt="Elk Island Public Schools Logo" className="h-24 md:h-32 mb-6 object-contain" />
@@ -1142,74 +1052,34 @@
             Select your target grade, subject, and the total number of units you plan to evaluate. 
             The system will automatically load the appropriate curriculum package.
           </p>
-          
           <div className="w-full max-w-md space-y-5 px-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Grade</label>
-              <select 
-                value={appConfig.grade} 
-                onChange={e => setAppConfig({...appConfig, grade: e.target.value})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
-              >
-                <option value="7">Grade 7</option>
-                <option value="8">Grade 8</option>
-                <option value="9">Grade 9</option>
+              <select value={appConfig.grade} onChange={e => setAppConfig({...appConfig, grade: e.target.value})} className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer">
+                <option value="7">Grade 7</option><option value="8">Grade 8</option><option value="9">Grade 9</option>
               </select>
             </div>
-            
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Subject</label>
-              <select 
-                value={appConfig.subject} 
-                onChange={e => setAppConfig({...appConfig, subject: e.target.value})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
-              >
-                <option value="Social Studies">Social Studies</option>
-                <option value="Math">Math</option>
+              <select value={appConfig.subject} onChange={e => setAppConfig({...appConfig, subject: e.target.value})} className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer">
+                <option value="Social Studies">Social Studies</option><option value="Math">Math</option>
                 <option value="Physical Education and Wellness">Physical Education and Wellness</option>
                 <option value="Career Education and Financial Literacy">Career Education and Financial Literacy</option>
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Number of Units</label>
-              <select 
-                value={appConfig.numUnits} 
-                onChange={e => setAppConfig({...appConfig, numUnits: parseInt(e.target.value)})}
-                className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer"
-              >
-                {Array.from({length: 19}, (_, i) => i + 2).map(num => (
-                  <option key={num} value={num}>{num} Units</option>
-                ))}
+              <select value={appConfig.numUnits} onChange={e => setAppConfig({...appConfig, numUnits: parseInt(e.target.value)})} className="w-full border border-gray-300 rounded-md p-3 focus:ring-eips-green focus:border-eips-green bg-gray-50 text-gray-900 cursor-pointer">
+                {Array.from({length: 19}, (_, i) => i + 2).map(num => (<option key={num} value={num}>{num} Units</option>))}
               </select>
             </div>
-            
-            {loadError && (
-              <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-md text-sm mt-4">
-                <strong>Error:</strong> {loadError}
-              </div>
-            )}
-
-            <button 
-              onClick={handleLoadClick}
-              disabled={loadingData}
-              className={`w-full mt-6 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all ${loadingData ? 'bg-eips-green/50 cursor-not-allowed' : 'bg-eips-green hover:bg-opacity-90'}`}
-            >
+            {loadError && <div className="bg-red-50 text-red-700 border border-red-200 p-3 rounded-md text-sm mt-4"><strong>Error:</strong> {loadError}</div>}
+            <button onClick={handleLoadClick} disabled={loadingData} className={`w-full mt-6 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-all ${loadingData ? 'bg-eips-green/50 cursor-not-allowed' : 'bg-eips-green hover:bg-opacity-90'}`}>
               {loadingData ? 'Loading Data...' : 'Load Course Data'}
             </button>
-
-            {/* Manual Upload Section */}
             <div className="mt-3 text-center">
-              <input 
-                type="file" 
-                accept=".csv" 
-                id="manual-upload" 
-                className="hidden" 
-                onChange={handleManualUpload} 
-              />
-              <label htmlFor="manual-upload" className="text-xs text-gray-400 hover:text-eips-green cursor-pointer transition-colors">
-                Manual Upload (.csv)
-              </label>
+              <input type="file" accept=".csv" id="manual-upload" className="hidden" onChange={handleManualUpload} />
+              <label htmlFor="manual-upload" className="text-xs text-gray-400 hover:text-eips-green cursor-pointer transition-colors">Manual Upload (.csv)</label>
             </div>
           </div>
         </div>
@@ -1217,54 +1087,39 @@
 
       const renderOverview = () => (
         <div className="max-w-5xl mx-auto space-y-8 pb-10">
-          
-          {/* Curriculum Architecture Section */}
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              <BookIcon />
-              <h2 className="text-2xl font-bold text-gray-900 ml-3">Curriculum Architecture Guide</h2>
+              <BookIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Curriculum Architecture Guide</h2>
             </div>
-            
             <p className="text-gray-600 mb-8 text-sm md:text-base leading-relaxed">
               The Guiding Framework outlines a clear, logical structure for educational development. Familiarise yourself with these core elements to construct effective units and ensure alignment with provincial standards.
             </p>
-
             <div className="space-y-6">
-              {/* Core Ideas */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-md">
                   <h3 className="font-bold text-green-900 text-lg mb-1 flex items-center">
-                    <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded mr-2 uppercase">OI</span> 
-                    Organising Idea
+                    <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded mr-2 uppercase">OI</span> Organising Idea
                   </h3>
                   <p className="text-sm text-green-800 leading-snug">A foundational statement that connects learning outcomes to the central, core concepts of the subject area. It organises the learning overarching the entire unit.</p>
                 </div>
-
                 <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
                   <h3 className="font-bold text-blue-900 text-lg mb-1 flex items-center">
-                    <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded mr-2 uppercase">GQ</span> 
-                    Guiding Question
+                    <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded mr-2 uppercase">GQ</span> Guiding Question
                   </h3>
                   <p className="text-sm text-blue-800 leading-snug">An open-ended question that frames the Organising Idea. It is designed to inspire student exploration, inquiry, and critical thinking throughout the unit.</p>
                 </div>
               </div>
-
-              {/* Learning Outcomes */}
               <div className="bg-gray-50 border border-gray-200 p-5 rounded-md">
                 <h3 className="font-bold text-gray-900 text-lg mb-2 flex items-center">
-                  <span className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-2 uppercase">LO</span> 
-                  Learning Outcome
+                  <span className="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded mr-2 uppercase">LO</span> Learning Outcome
                 </h3>
                 <p className="text-sm text-gray-700 leading-snug mb-4">A clear, observable statement describing what students are expected to know, understand, and be able to do by the end of a specific grade or unit.</p>
-                
-                {/* Pillars of the Outcome (Nested Hierarchy Visual) */}
                 <div className="grid md:grid-cols-1 gap-6 pt-2">
                   <div className="bg-white border border-gray-200 p-4 rounded-md shadow-sm">
                     <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
                       <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded mr-2 uppercase">U</span> Understandings
                     </h4>
                     <p className="text-sm text-gray-600 mb-4">Concepts, themes, and big-picture relationships. These define the deeper meaning that students should comprehend and internalize.</p>
-                    
                     <div className="grid md:grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-2">
                       <div className="bg-gray-50 border border-gray-200 p-4 rounded-md shadow-sm">
                         <h4 className="font-bold text-gray-800 mb-2 flex items-center text-md">
@@ -1284,43 +1139,30 @@
               </div>
             </div>
           </div>
-
-          {/* Language Conventions Section */}
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              <InfoIcon />
-              <h2 className="text-2xl font-bold text-gray-900 ml-3">Language Conventions</h2>
+              <InfoIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Language Conventions</h2>
             </div>
-            
             <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
               When reading the curriculum checklist, the specific terminology used by Alberta Education dictates how the content must be implemented in your classroom. Please reference these rules when planning:
             </p>
-
             <div className="space-y-4">
               <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
-                <div className="bg-red-100 text-red-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-red-200">
-                  including / include(s)
-                </div>
+                <div className="bg-red-100 text-red-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-red-200">including / include(s)</div>
                 <div className="ml-4">
                   <h4 className="font-bold text-gray-900 text-sm">Mandatory Requirement</h4>
                   <p className="text-sm text-gray-600 mt-1">Content following "including" or "include(s)" is a <strong className="text-gray-800">required component</strong> that must be explicitly addressed to achieve the learning outcome.</p>
                 </div>
               </div>
-
               <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
-                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-blue-200">
-                  such as / e.g. / for example
-                </div>
+                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-blue-200">such as / e.g. / for example</div>
                 <div className="ml-4">
                   <h4 className="font-bold text-gray-900 text-sm">Optional Illustration</h4>
                   <p className="text-sm text-gray-600 mt-1">Content following these phrases contains <strong className="text-gray-800">optional illustrative examples</strong>. They are provided to support understanding but do not legally have to be taught.</p>
                 </div>
               </div>
-
               <div className="flex items-start p-4 bg-gray-50 rounded-md border border-gray-100">
-                <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-gray-300">
-                  ( parentheses )
-                </div>
+                <div className="bg-gray-200 text-gray-800 px-3 py-1 rounded font-mono text-sm font-bold min-w-[140px] text-center border border-gray-300">( parentheses )</div>
                 <div className="ml-4">
                   <h4 className="font-bold text-gray-900 text-sm">Contextual Guidance</h4>
                   <p className="text-sm text-gray-600 mt-1">Content in parentheses is <strong className="text-gray-800">subject-specific information for teachers and parents</strong>, which immediately follows an associated age-appropriate term intended for the students.</p>
@@ -1328,44 +1170,32 @@
               </div>
             </div>
           </div>
-
-          {/* Guiding Principles Section */}
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              <LightbulbIcon />
-              <h2 className="text-2xl font-bold text-gray-900 ml-3">Guiding Principles & Contexts</h2>
+              <LightbulbIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Guiding Principles & Contexts</h2>
             </div>
-            
-            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
-              Click on the sections below to explore additional key contexts and frameworks embedded throughout the provincial curriculum.
-            </p>
-
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">Click on the sections below to explore additional key contexts and frameworks embedded throughout the provincial curriculum.</p>
             <div>
               <AccordionItem title="What to Teach, Not How to Teach">
                 <p className="mb-3">The curriculum is inherently designed to prescribe <strong>what</strong> students are expected to learn—the explicit knowledge, understandings, and skills defined within the learning outcomes.</p>
                 <p>However, it respects and relies upon teacher autonomy regarding <strong>how</strong> to teach. Educators are empowered to use their professional judgment to select the instructional methods, pedagogical strategies, resources, and learning activities that best meet the diverse needs of the students in their classrooms.</p>
               </AccordionItem>
-
               <AccordionItem title="Pluralism">
                 <p className="mb-3">Alberta's curriculum is built on a foundation of pluralism, recognising, respecting, and celebrating the diverse cultural, linguistic, and ethnic backgrounds that form our society.</p>
                 <p>Incorporating pluralism ensures that students see themselves reflected in their learning while simultaneously developing a deep appreciation for the varied histories, contributions, and viewpoints of others. It helps build a cohesive society grounded in mutual respect and understanding.</p>
               </AccordionItem>
-
               <AccordionItem title="Inclusion">
                 <p className="mb-3">Inclusive education means ensuring that all students, regardless of their background, ability, or learning profile, can meaningfully participate and succeed in the classroom.</p>
                 <p>The curriculum is designed with flexibility in mind, allowing teachers to anticipate diverse learning needs and provide multiple pathways to achieve the learning outcomes. Inclusion focuses on removing barriers so every student experiences a sense of belonging and academic achievement.</p>
               </AccordionItem>
-
               <AccordionItem title="First Nations, Métis, and Inuit Experiences and Perspectives">
                 <p className="mb-3">The curriculum is committed to authentically embedding the historical and contemporary experiences, perspectives, and knowledge systems of First Nations, Métis, and Inuit peoples across various subjects.</p>
                 <p>This includes foundational learning about the history and legacy of residential schools, the significance of treaties, and the enduring cultural contributions of Indigenous peoples. Doing so fosters truth, reconciliation, and a shared understanding of our history.</p>
               </AccordionItem>
-
               <AccordionItem title="Francophone Perspectives">
                 <p className="mb-3">Acknowledging the bilingual nature of Canada and the foundational role of Francophones in shaping our province and country, the curriculum integrates Francophone history, culture, and perspectives.</p>
                 <p>By exploring these perspectives across subjects, students gain a richer understanding of Alberta's heritage, the contributions of Francophone communities, and the ongoing importance of the French language in Canada.</p>
               </AccordionItem>
-
               <AccordionItem title="Literacy and Numeracy">
                 <p className="mb-3">Literacy and numeracy are the foundational building blocks of all learning and are not confined solely to Language Arts or Mathematics. They are actively integrated across all subject areas.</p>
                 <ul className="list-disc pl-5 space-y-1">
@@ -1373,11 +1203,9 @@
                   <li><strong>Numeracy</strong> involves the confidence and habit of applying mathematical understanding to solve problems in everyday life, work, and society.</li>
                 </ul>
               </AccordionItem>
-
               <AccordionItem title="Competencies">
                 <p className="mb-4">Competencies are combinations of knowledge, skills, and attitudes that students develop and apply for successful learning, living, and working. They are not taught in isolation; rather, they are interwoven and embedded directly within the learning outcomes across all subject areas.</p>
                 <p className="mb-4 text-gray-800 font-semibold">The Guiding Framework identifies the following core competencies:</p>
-                
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
                     <strong className="text-gray-900 block mb-1">Critical Thinking</strong>
@@ -1415,7 +1243,6 @@
               </AccordionItem>
             </div>
           </div>
-
         </div>
       );
 
@@ -1423,32 +1250,20 @@
         <div className="max-w-4xl mx-auto space-y-8 pb-10">
           <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
-              <HelpIcon />
-              <h2 className="text-2xl font-bold text-gray-900 ml-3">How to Use the Alberta Curriculum Unit Planner</h2>
+              <HelpIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">How to Use the Alberta Curriculum Unit Planner</h2>
             </div>
-            
             <div className="text-gray-600 text-sm md:text-base leading-relaxed space-y-6">
-              <p>
-                Welcome to the Elk Island Public Schools Alberta Curriculum Unit Planner. This tool is designed to help educators streamline the process of mapping the Alberta curriculum into manageable, structured units using the Understanding by Design (UbD) framework.
-              </p>
-
-              {/* Code Hierarchy Explanation */}
+              <p>Welcome to the Elk Island Public Schools Alberta Curriculum Unit Planner. This tool is designed to help educators streamline the process of mapping the Alberta curriculum into manageable, structured units using the Understanding by Design (UbD) framework.</p>
               <div className="bg-gray-50 border border-gray-200 p-5 rounded-md shadow-sm">
                 <h3 className="font-bold text-gray-800 text-lg mb-3">Understanding the Code Hierarchy</h3>
                 <p className="mb-4">Every curriculum item is assigned a unique code that represents its exact place within the curriculum architecture. The codes are read from left to right, moving from the broadest concept down to the most specific detail.</p>
-                
                 <div className="bg-white py-4 px-2 rounded border border-gray-200 font-mono text-sm mb-4 flex flex-wrap gap-2 items-center justify-center text-center shadow-inner">
-                  <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded font-bold border border-green-200">OI.1</span>
-                  <span className="text-gray-400">▶</span>
-                  <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded font-bold border border-blue-200">GQ.1</span>
-                  <span className="text-gray-400">▶</span>
-                  <span className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded font-bold border border-gray-300">LO.1</span>
-                  <span className="text-gray-400">▶</span>
-                  <span className="bg-purple-100 text-purple-800 px-3 py-1.5 rounded font-bold border border-purple-200">U.1</span>
-                  <span className="text-gray-400">▶</span>
+                  <span className="bg-green-100 text-green-800 px-3 py-1.5 rounded font-bold border border-green-200">OI.1</span><span className="text-gray-400">▶</span>
+                  <span className="bg-blue-100 text-blue-800 px-3 py-1.5 rounded font-bold border border-blue-200">GQ.1</span><span className="text-gray-400">▶</span>
+                  <span className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded font-bold border border-gray-300">LO.1</span><span className="text-gray-400">▶</span>
+                  <span className="bg-purple-100 text-purple-800 px-3 py-1.5 rounded font-bold border border-purple-200">U.1</span><span className="text-gray-400">▶</span>
                   <span className="bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded font-bold border border-yellow-200">K.1</span>
                 </div>
-                
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mt-4 bg-white p-4 rounded border border-gray-100">
                   <div className="flex items-center"><span className="w-7 h-6 rounded bg-green-100 border border-green-300 shadow-sm flex items-center justify-center text-xs font-bold mr-2">OI</span> Organising Idea</div>
                   <div className="flex items-center"><span className="w-7 h-6 rounded bg-blue-100 border border-blue-300 shadow-sm flex items-center justify-center text-xs font-bold mr-2">GQ</span> Guiding Question</div>
@@ -1457,22 +1272,13 @@
                   <div className="flex items-center"><span className="w-7 h-6 rounded bg-yellow-100 border border-yellow-300 shadow-sm flex items-center justify-center text-xs font-bold mr-2">K</span> Knowledge</div>
                   <div className="flex items-center"><span className="w-7 h-6 rounded bg-orange-100 border border-orange-300 shadow-sm flex items-center justify-center text-xs font-bold mr-2">SP</span> Skills & Procedures</div>
                 </div>
-                
-                <p className="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded border border-blue-100"><strong>Example:</strong> The code above indicates that this specific Knowledge item (<strong>K.1</strong>) belongs to Understanding 1 (<strong>U.1</strong>), which supports Learning Outcome 1 (<strong>LO.1</strong>), under Guiding Question 1 (<strong>GQ.1</strong>), within Organising Idea 1 (<strong>OI.1</strong>).</p>
               </div>
-
               <div className="bg-eips-green/5 border-l-4 border-eips-green p-4 rounded-r-md mt-6">
                 <h3 className="font-bold text-eips-green text-lg mb-2">1. Course Selection</h3>
-                <p>
-                  Start on the <strong>Course Selection</strong> tab. Choose the grade level, the specific subject you are teaching, and the total number of units you plan to divide your year into. Clicking "Load Course Data" will pull the exact, up-to-date provincial curriculum codes into your workspace.
-                </p>
+                <p>Start on the <strong>Course Selection</strong> tab. Choose the grade level, the specific subject you are teaching, and the total number of units you plan to divide your year into. Clicking "Load Course Data" will pull the exact, up-to-date provincial curriculum codes into your workspace.</p>
               </div>
-
               <div className="bg-eips-orange/5 border-l-4 border-eips-orange p-4 rounded-r-md">
                 <h3 className="font-bold text-eips-orange text-lg mb-2">2. Mapping the Checklist</h3>
-                <p>
-                  Navigate to the <strong>Checklist</strong> tab to view the full curriculum. 
-                </p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li>Review the Organising Ideas (OI), Guiding Questions (GQ), Learning Outcomes (LO), Understandings (U), Knowledge (K), and Skills & Procedures (SP).</li>
                   <li>Use the checkboxes on the right to assign specific items to your chosen units (e.g., Unit 1, Unit 2).</li>
@@ -1480,25 +1286,16 @@
                   <li>Ensure every item has a "Use Count" of at least 1 (turns green) to guarantee full curriculum coverage.</li>
                 </ul>
               </div>
-
               <div className="bg-eips-lime/10 border-l-4 border-eips-lime p-4 rounded-r-md">
                 <h3 className="font-bold text-eips-green text-lg mb-2">3. Review & Generate Unit Plans</h3>
-                <p>
-                  Once you have assigned items to a unit, use the <strong>View Unit Plan...</strong> dropdown in the top navigation bar to select a specific unit (e.g., Unit 1 Overview).
-                </p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li>This page will display a consolidated view of <em>only</em> the curriculum elements you mapped to that specific unit, grouped logically by category.</li>
                   <li>Click the <strong>Generate Unit Plan Template</strong> button in the top right. This will instantly download a pre-formatted Microsoft Word (.docx) file containing all your selected curriculum data, ready for you to add your specific assessments and daily lesson plans.</li>
                 </ul>
               </div>
-
               <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-md">
-                <h3 className="font-bold text-indigo-900 text-lg mb-2 flex items-center">
-                  <SparkleIcon /> 4. AI Planning Assistants & API Keys
-                </h3>
-                <p className="mb-2">
-                  This planner includes integrated AI assistants powered by Google Gemini to help you instantly draft <strong>Performance Tasks</strong> and brainstorm <strong>Lesson Activities</strong> based on your specifically mapped curriculum items.
-                </p>
+                <h3 className="font-bold text-indigo-900 text-lg mb-2 flex items-center"><SparkleIcon /> 4. AI Planning Assistants & API Keys</h3>
+                <p className="mb-2">This planner includes integrated AI assistants powered by Google Gemini to help you instantly draft <strong>Performance Tasks</strong> and brainstorm <strong>Lesson Activities</strong> based on your specifically mapped curriculum items.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
                   <li><strong>Get a Key:</strong> To unlock these features, you need a free Google Gemini API Key. You can generate one instantly from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold">Google AI Studio</a>.</li>
                   <li><strong>Enter your Key:</strong> Navigate to any generated Unit Plan (e.g., "Unit 1 Overview") via the top dropdown and paste your key into the "AI Planning Assistants" panel.</li>
@@ -1506,14 +1303,10 @@
                   <li><strong>Add to Template:</strong> Once the AI generates a response you like, you can select elements and click "Add to Lesson Template" to automatically inject the content directly into your downloadable Word document!</li>
                 </ul>
               </div>
-
               <div className="bg-gray-50 border border-gray-200 p-4 rounded-md">
                 <h3 className="font-bold text-gray-800 text-lg mb-2">Saving Your Progress</h3>
-                <p>
-                  Your work is not automatically saved to the cloud. Click the green <strong>Save Progress</strong> button on the Checklist page frequently. This stores your current mapping securely in your browser's local memory. You can close the tab and return tomorrow, and your selections will automatically load.
-                </p>
+                <p>Your work is not automatically saved to the cloud. Click the green <strong>Save Progress</strong> button on the Checklist page frequently. This stores your current mapping securely in your browser's local memory. You can close the tab and return tomorrow, and your selections will automatically load.</p>
               </div>
-
             </div>
           </div>
         </div>
@@ -1522,20 +1315,16 @@
       const renderChecklist = () => {
         const unitCount = loadedConfig ? loadedConfig.numUnits : 0;
         
-        // Helper for rendering Flex Rows (Option 3 Layout)
         const renderRow = (item, type, isFirst = false, isLast = false) => {
           const useCount = Array.from({length: unitCount}, (_, i) => item[`u${i+1}`]).filter(Boolean).length;
           const useCountColor = useCount === 0 ? 'text-red-600' : 'text-green-600';
           
-          // Mathematically parse the full code into an array of isolated, colourable badges
           const parts = item.code.split('.');
           const badges = [];
           let currentCodePath = '';
           for (let i = 0; i < parts.length; i += 2) {
             let badgeText = parts[i];
-            if (parts[i+1]) {
-              badgeText += `.${parts[i+1]}`;
-            }
+            if (parts[i+1]) badgeText += `.${parts[i+1]}`;
             currentCodePath += (currentCodePath ? '.' : '') + badgeText;
             badges.push({ fullText: badgeText, prefix: parts[i], fullCode: currentCodePath });
           }
@@ -1544,7 +1333,6 @@
           let textClasses = "text-sm ";
           let bgClass = getCodeBgColor(item.code, false);
 
-          // "Option 3" Specific Chunked Hierarchy Styles
           if (type === 'oi') {
             textClasses += "font-bold text-gray-900 text-base ";
           } else if (type === 'gq') {
@@ -1552,22 +1340,20 @@
           } else if (type === 'lo') {
             rowClasses += "border-b border-gray-300 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] z-10 relative ";
             textClasses += "font-bold text-gray-900 ";
-          } else { // child or orphan
+          } else { 
             const cat = getCategory(item.code);
             if (cat === 'understandings') {
                rowClasses += "border-b border-black/5 hover:brightness-95 ";
                textClasses += "font-semibold text-gray-800 ";
-               // Notice we DO NOT overwrite bgClass here, so U correctly keeps the parent LO colour
             } else {
                rowClasses += "border-b border-gray-100 hover:bg-gray-50 last:border-b-0 ";
-               bgClass = "bg-white"; // Force children to be white inside the colored card
+               bgClass = "bg-white"; 
                textClasses += "font-normal text-gray-700 ";
             }
           }
 
           return (
             <div id={`row-${item.id}`} key={item.id} className={rowClasses + bgClass}>
-              {/* Combined Frozen sticky column */}
               <div className={`w-[520px] shrink-0 px-5 py-4 sticky left-0 z-20 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-inherit flex flex-row items-start ${isFirst ? 'rounded-tl-lg ' : ''}${isLast ? 'rounded-bl-lg ' : ''}`}>
                 <div className="flex flex-row items-start flex-nowrap gap-1 shrink-0 mt-0.5 mr-4">
                   {badges.map((badge, idx) => (
@@ -1585,7 +1371,6 @@
                   <FormattedDescription text={item.desc} />
                 </div>
               </div>
-              {/* Flowing columns */}
               <div className={`w-[100px] shrink-0 px-4 py-4 flex justify-center items-start font-bold text-lg ${useCountColor}`}>
                 {useCount}
               </div>
@@ -1614,26 +1399,16 @@
                 Checklist <span className="text-sm font-normal text-gray-500 ml-2">({filteredItems.length} items)</span>
               </h2>
               <div className="flex items-center space-x-3">
-                <button 
-                  onClick={() => setShowResetConfirm(true)}
-                  className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors shadow-sm"
-                >
+                <button onClick={() => setShowResetConfirm(true)} className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors shadow-sm">
                   Reset
                 </button>
-                <button 
-                  onClick={handleSaveProgress}
-                  className="px-4 py-2 bg-eips-green text-white border border-transparent rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm"
-                >
+                <button onClick={handleSaveProgress} className="px-4 py-2 bg-eips-green text-white border border-transparent rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm">
                   {saveStatus || 'Save'}
                 </button>
-                
-                {/* View Unit Plan Dropdown next to Save Progress */}
                 <div className="relative flex items-center">
                    <select
                       value=""
-                      onChange={(e) => {
-                        if (e.target.value) handleTabClick(e.target.value);
-                      }}
+                      onChange={(e) => { if (e.target.value) handleTabClick(e.target.value); }}
                       className="appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors hover:bg-gray-50 shadow-sm"
                    >
                       <option value="" disabled>View Unit Plan...</option>
@@ -1648,19 +1423,14 @@
               </div>
             </div>
 
-            {/* Collapsible Instructions Accordion */}
             <div className="bg-eips-green/5 border-b border-eips-green/20 shrink-0 relative z-40">
-              <button 
-                onClick={() => setShowInstructions(!showInstructions)} 
-                className="w-full px-6 py-3 flex justify-between items-center text-left focus:outline-none hover:bg-eips-green/10 transition-colors"
-              >
+              <button onClick={() => setShowInstructions(!showInstructions)} className="w-full px-6 py-3 flex justify-between items-center text-left focus:outline-none hover:bg-eips-green/10 transition-colors">
                 <h3 className="font-bold text-eips-green text-sm flex items-center">
                   <svg className="w-5 h-5 text-eips-green mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   How to use this checklist
                 </h3>
                 <svg className={`w-5 h-5 text-eips-green transform transition-transform duration-200 ${showInstructions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
-              
               {showInstructions && (
                 <div className="px-6 pb-4 pt-1">
                   <ul className="list-disc pl-7 text-sm text-gray-700 space-y-1.5 marker:text-eips-green">
@@ -1672,98 +1442,58 @@
               )}
             </div>
 
-            {/* Filters and Search Bar */}
             <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap gap-3 items-center shrink-0 z-30 shadow-inner">
                <span className="text-sm font-bold text-gray-700 mr-1 flex items-center">
                  <svg className="w-4 h-4 mr-1.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                  Filters:
                </span>
-               <select
-                 value={hierarchyFilter.startsWith('OI') ? hierarchyFilter : ''}
-                 onChange={(e) => setHierarchyFilter(e.target.value)}
-                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
-               >
+               <select value={hierarchyFilter.startsWith('OI') ? hierarchyFilter : ''} onChange={(e) => setHierarchyFilter(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm">
                  <option value="">All Organizing Ideas</option>
                  {filterGroups.OI.map(oi => <option key={oi} value={oi}>{oi}</option>)}
                </select>
-
-               <select
-                 value={hierarchyFilter.startsWith('GQ') ? hierarchyFilter : ''}
-                 onChange={(e) => setHierarchyFilter(e.target.value)}
-                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
-               >
+               <select value={hierarchyFilter.startsWith('GQ') ? hierarchyFilter : ''} onChange={(e) => setHierarchyFilter(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm">
                  <option value="">All Guiding Questions</option>
                  {filterGroups.GQ.map(gq => <option key={gq} value={gq}>{gq}</option>)}
                </select>
-
-               <select
-                 value={hierarchyFilter.startsWith('LO') ? hierarchyFilter : ''}
-                 onChange={(e) => setHierarchyFilter(e.target.value)}
-                 className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm"
-               >
+               <select value={hierarchyFilter.startsWith('LO') ? hierarchyFilter : ''} onChange={(e) => setHierarchyFilter(e.target.value)} className="border border-gray-300 rounded-md px-3 py-1.5 w-48 text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green bg-white text-gray-700 cursor-pointer shadow-sm">
                  <option value="">All Learning Outcomes</option>
                  {filterGroups.LO.map(lo => <option key={lo} value={lo}>{lo}</option>)}
                </select>
-
                <div className="border-l border-gray-300 h-6 mx-1 hidden md:block"></div>
-
-               <input 
-                 type="text" 
-                 placeholder="Search codes or descriptions..." 
-                 className="border border-gray-300 rounded-md px-4 py-1.5 flex-1 min-w-[200px] text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-               />
+               <input type="text" placeholder="Search codes or descriptions..." className="border border-gray-300 rounded-md px-4 py-1.5 flex-1 min-w-[200px] text-sm focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             </div>
             
-            {/* Split Scrolling System Implementation with Option 3 Card Groups */}
             <div className="overflow-hidden flex-1 flex flex-col relative bg-gray-50 rounded-b-lg">
-              
-              <div 
-                className="flex-1 overflow-y-auto overflow-x-auto hide-native-scrollbar-x custom-scrollbar-y"
-                ref={tableRef}
-                onScroll={handleTableScroll}
-              >
-                {/* Global Sticky Header (Flex based to match new structure) */}
+              <div className="flex-1 overflow-y-auto overflow-x-auto hide-native-scrollbar-x custom-scrollbar-y" ref={tableRef} onScroll={handleTableScroll}>
                 <div className="flex w-max min-w-full bg-gray-100 border-b border-gray-300 sticky top-0 z-40 shadow-sm border-x border-transparent">
                   <div className="w-[520px] shrink-0 px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-50 bg-gray-100 border-r-2 border-gray-300 shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] flex items-center">
                     Curriculum Item
                   </div>
                   <div className="w-[100px] shrink-0 px-4 py-2 flex flex-col items-center justify-center">
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Use Count</span>
-                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title="Total Unique Items Mapped">
-                      {totalSelectedCount} / {items.length}
+                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title="Total Specific Outcomes (U, K, SP) Mapped">
+                      {totalSelectedCount} / {totalTrackableCount}
                     </span>
                   </div>
                   {Array.from({length: unitCount}, (_, i) => {
                     const uField = `u${i+1}`;
-                    const unitSelectedCount = items.filter(item => item[uField]).length;
+                    const unitSelectedCount = trackableItems.filter(item => item[uField]).length;
                     return (
                       <div key={`th-u${i+1}`} className="w-[80px] shrink-0 px-2 py-2 flex flex-col items-center justify-center border-l border-gray-200/50">
                         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Unit {i+1}</span>
-                        <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title={`Items assigned to Unit ${i+1}`}>
+                        <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title={`Specific Outcomes in Unit ${i+1}`}>
                           {unitSelectedCount}
                         </span>
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Grouped Cards Container */}
                 <div className="py-6 w-max min-w-full flex flex-col">
                   {groupedCards.map((group, index) => {
                     if (group.type === 'oi') {
-                      return (
-                        <div className="mb-6 border border-gray-300 rounded-lg shadow-md flex flex-col w-max min-w-full" key={group.item.id}>
-                          {renderRow(group.item, 'oi', true, true)}
-                        </div>
-                      );
+                      return (<div className="mb-6 border border-gray-300 rounded-lg shadow-md flex flex-col w-max min-w-full" key={group.item.id}>{renderRow(group.item, 'oi', true, true)}</div>);
                     } else if (group.type === 'gq') {
-                      return (
-                        <div className="mb-6 border border-gray-200 rounded-lg shadow-sm flex flex-col w-max min-w-full" key={group.item.id}>
-                          {renderRow(group.item, 'gq', true, true)}
-                        </div>
-                      );
+                      return (<div className="mb-6 border border-gray-200 rounded-lg shadow-sm flex flex-col w-max min-w-full" key={group.item.id}>{renderRow(group.item, 'gq', true, true)}</div>);
                     } else if (group.type === 'lo_card') {
                       return (
                         <div className="mb-8 bg-white border border-gray-300 rounded-lg shadow-sm flex flex-col w-max min-w-full" key={`card-${index}`}>
@@ -1775,30 +1505,16 @@
                       return renderRow(group.item, 'orphan', true, true);
                     }
                   })}
-                  {filteredItems.length === 0 && (
-                    <div className="py-8 text-center text-gray-500 w-full">
-                      No items found matching your current filter or search.
-                    </div>
-                  )}
+                  {filteredItems.length === 0 && <div className="py-8 text-center text-gray-500 w-full">No items found matching your current filter or search.</div>}
                 </div>
               </div>
-
-              {/* Offset Fake Horizontal Scrollbar Component */}
               <div className="flex bg-gray-50 border-t border-gray-200 shrink-0 relative z-50">
-                 {/* Solid spacer matching the frozen column width exactly */}
                  <div className="w-[520px] shrink-0 border-l border-transparent border-r-2 border-gray-300 bg-gray-100"></div>
-                 {/* Scroll track matching remainder width */}
-                 <div 
-                    className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar-x"
-                    ref={scrollRef}
-                    onScroll={handleFakeScroll}
-                 >
-                    {/* Inner virtual width mapped to real columns (100px + 80px per unit) */}
+                 <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar-x" ref={scrollRef} onScroll={handleFakeScroll}>
                     <div style={{ width: `${100 + (unitCount * 80)}px`, height: '1px' }}></div>
                  </div>
               </div>
             </div>
-
           </div>
         );
       };
@@ -1809,6 +1525,12 @@
         const unitName = `Unit ${unitNum}`;
         const currentUnitData = unitData[unitNum] || {};
         
+        const trackableUnitItems = unitItems.filter(i => {
+           const cat = getCategory(i.code);
+           return cat === 'knows' || cat === 'skills' || cat === 'understandings';
+        });
+        const displayCount = trackableUnitItems.length > 0 ? trackableUnitItems.length : unitItems.length;
+
         const categories = {
           goals: unitItems.filter(i => getCategory(i.code) === 'goals'),
           understandings: unitItems.filter(i => getCategory(i.code) === 'understandings'),
@@ -1825,16 +1547,12 @@
               <ul className="space-y-3">
                 {list.map(item => {
                   const itemBg = getCodeBgColor(item.code, false);
-                  
-                  // Same parsing logic applied to the Unit View to display all code badges
                   const parts = item.code.split('.');
                   const badges = [];
                   let currentCodePath = '';
                   for (let i = 0; i < parts.length; i += 2) {
                     let badgeText = parts[i];
-                    if (parts[i+1]) {
-                      badgeText += `.${parts[i+1]}`;
-                    }
+                    if (parts[i+1]) badgeText += `.${parts[i+1]}`;
                     currentCodePath += (currentCodePath ? '.' : '') + badgeText;
                     badges.push({ fullText: badgeText, prefix: parts[i], fullCode: currentCodePath });
                   }
@@ -1878,73 +1596,40 @@
                       Grade {loadedConfig.grade} • {loadedConfig.subject}
                     </div>
                   )}
-                  <p className="text-gray-500 text-sm">{unitItems.length} items total allocated to this unit.</p>
+                  <p className="text-gray-500 text-sm">{displayCount} specific outcomes allocated to this unit.</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <button 
-                  onClick={() => handleTabClick('checklist')}
-                  className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-all"
-                >
+                <button onClick={() => handleTabClick('checklist')} className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-all">
                   <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                   Back to Checklist
                 </button>
-                <button 
-                  onClick={() => exportToWord(unitName, unitItems, loadedConfig, currentUnitData)}
-                  disabled={unitItems.length === 0}
-                  className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all
-                    ${unitItems.length > 0 
-                      ? 'bg-eips-green hover:bg-opacity-90 text-white' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                >
-                  <DownloadIcon />
-                  Generate Unit Plan Template
+                <button onClick={() => exportToWord(unitName, unitItems, loadedConfig, currentUnitData)} disabled={unitItems.length === 0} className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all ${unitItems.length > 0 ? 'bg-eips-green hover:bg-opacity-90 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                  <DownloadIcon /> Generate Unit Plan Template
                 </button>
               </div>
             </div>
 
-            {/* AI Planning Assistants Panel */}
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100 shadow-sm">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="text-lg font-bold text-indigo-900 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> 
                   AI Planning Assistants
                 </h3>
-                {apiKey && (
-                  <button onClick={handleClearApiKey} className="text-xs text-indigo-500 hover:text-indigo-700 underline focus:outline-none">
-                    Clear API Key
-                  </button>
-                )}
+                {apiKey && <button onClick={handleClearApiKey} className="text-xs text-indigo-500 hover:text-indigo-700 underline focus:outline-none">Clear API Key</button>}
               </div>
               
               {!apiKey ? (
                 <div className="mt-3 bg-white p-4 rounded-md border border-indigo-100 shadow-sm">
-                  <p className="text-sm text-gray-700 mb-3">
-                    To use the AI Planning Assistants, please enter your free Google Gemini API key. Your key is saved locally in your browser and is never sent to our servers.
-                  </p>
+                  <p className="text-sm text-gray-700 mb-3">To use the AI Planning Assistants, please enter your free Google Gemini API key. Your key is saved locally in your browser and is never sent to our servers.</p>
                   <div className="flex gap-2">
-                    <input 
-                      type="password" 
-                      placeholder="Paste your Gemini API key here..."
-                      value={tempApiKey}
-                      onChange={(e) => setTempApiKey(e.target.value)}
-                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <button 
-                      onClick={handleSaveApiKey}
-                      disabled={!tempApiKey.trim()}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                    >
-                      Save Key
-                    </button>
+                    <input type="password" placeholder="Paste your Gemini API key here..." value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <button onClick={handleSaveApiKey} disabled={!tempApiKey.trim()} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">Save Key</button>
                   </div>
                   <p className="text-xs text-gray-500 mt-3">
                     Don't have one? Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
-                    <button onClick={() => setShowApiInstructions(!showApiInstructions)} className="ml-2 text-indigo-500 hover:text-indigo-700 underline focus:outline-none">
-                      {showApiInstructions ? 'Hide instructions' : 'How do I get a key?'}
-                    </button>
+                    <button onClick={() => setShowApiInstructions(!showApiInstructions)} className="ml-2 text-indigo-500 hover:text-indigo-700 underline focus:outline-none">{showApiInstructions ? 'Hide instructions' : 'How do I get a key?'}</button>
                   </p>
-
                   {showApiInstructions && (
                     <div className="mt-3 p-4 bg-indigo-50 rounded border border-indigo-100 text-sm text-gray-800">
                       <h4 className="font-bold text-indigo-900 mb-2">How to create your free API key:</h4>
@@ -1958,63 +1643,61 @@
                       </ol>
                     </div>
                   )}
-
                 </div>
-              ) : (
+              ) : !activeAiTool ? (
                 <>
                   <p className="text-sm text-indigo-700 mb-4">Use your selected curriculum items to automatically generate targeted materials for your unit.</p>
                   <div className="flex flex-wrap gap-3">
-                    <button 
-                      onClick={() => handleGeneratePerformanceTask(unitItems, unitNum)}
-                      disabled={unitItems.length === 0}
-                      className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}
-                    >
+                    <button onClick={() => { setActiveAiTool('pt'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Draft Performance Task (Stage 2)
                     </button>
-                    <button 
-                      onClick={() => handleGenerateLessonIdeas(unitItems, unitNum)}
-                      disabled={unitItems.length === 0}
-                      className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}
-                    >
+                    <button onClick={() => { setActiveAiTool('lessons'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Lesson Ideas (Stage 3)
                     </button>
                   </div>
                 </>
+              ) : (
+                <div className="bg-white p-5 rounded-md border border-indigo-100 shadow-sm mt-3 transition-all animate-fade-in">
+                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
+                    <h4 className="font-bold text-indigo-900 flex items-center text-base"><SparkleIcon /> {activeAiTool === 'pt' ? 'Drafting Performance Task' : 'Brainstorming Lesson Ideas'}</h4>
+                    <button onClick={() => setActiveAiTool(null)} className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back
+                    </button>
+                  </div>
+                  <label className="block text-sm font-bold text-gray-800 mb-1">Optional Custom Instructions:</label>
+                  <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+                    Guide the AI by providing specific themes, constraints, resources, or student needs. <br/>
+                    <strong className="text-gray-800">Example:</strong> 
+                    <span className="italic">{activeAiTool === 'pt' ? ' "Make the scenario about surviving a zombie apocalypse," or "Ensure the final product is a recorded podcast script."' : ' "Focus on outdoor, nature-based activities," or "Ensure these lessons do not require any digital technology."'}</span>
+                  </p>
+                  <textarea className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4 shadow-sm" rows="3" placeholder="Enter your custom instructions here (optional)..." value={customInstruction} onChange={(e) => setCustomInstruction(e.target.value)}></textarea>
+                  <div className="flex justify-end">
+                    <button onClick={() => { if (activeAiTool === 'pt') handleGeneratePerformanceTask(unitItems, unitNum); else handleGenerateLessonIdeas(unitItems, unitNum); }} className="px-6 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors">Generate Content</button>
+                  </div>
+                </div>
               )}
             </div>
 
             <div className="space-y-6">
               {renderSection('Organising Ideas (OI)', categories.other)}
               {renderSection('Learning Outcomes (LO)', categories.goals)}
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderSection('Understandings (U)', categories.understandings)}
                 {renderSection('Guiding Questions (GQ)', categories.questions)}
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {renderSection('Knowledge (Students will know...)', categories.knows)}
                 {renderSection('Skills & Procedures (Students will be able to...)', categories.skills)}
               </div>
             </div>
 
-            {/* Generated Output Preview Section */}
             {(currentUnitData.performanceTask || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
               <div className="pt-4 space-y-6">
                 <h3 className="text-xl font-bold text-gray-800 border-b border-gray-300 pb-2">Generated Unit Content</h3>
-                
                 {currentUnitData.performanceTask && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
-                    <button 
-                      onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].performanceTask; return upd; })}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
-                      title="Remove from Unit"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                       <SparkleIcon /> Performance Task
-                    </h3>
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].performanceTask; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Remove from Unit"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Performance Task</h3>
                     <h4 className="font-bold text-sm text-gray-700">Scenario</h4>
                     <p className="text-sm mb-3 whitespace-pre-wrap">{currentUnitData.performanceTask.scenario}</p>
                     <h4 className="font-bold text-sm text-gray-700">Elements</h4>
@@ -2023,19 +1706,10 @@
                     <p className="text-sm whitespace-pre-wrap">{currentUnitData.performanceTask.evaluativeCriteria}</p>
                   </div>
                 )}
-
                 {currentUnitData.lessons && currentUnitData.lessons.length > 0 && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
-                    <button 
-                      onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].lessons; return upd; })}
-                      className="absolute top-4 right-4 text-gray-400 hover:text-red-500"
-                      title="Clear All Lessons"
-                    >
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                       <SparkleIcon /> Lesson Activity Ideas
-                    </h3>
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].lessons; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Lessons"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Lesson Activity Ideas</h3>
                     <div className="space-y-4">
                       {currentUnitData.lessons.map((l, i) => (
                         <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
@@ -2065,39 +1739,14 @@
                   Alberta Curriculum Unit Planner
                 </h1>
                 <nav className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleTabClick('course')}
-                    className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                      ${activeTab === 'course' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
-                    `}
-                  >
-                    Course Selection
-                  </button>
-
+                  <button onClick={() => handleTabClick('course')} className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'course' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer`}>Course Selection</button>
                   {(loadedConfig && items.length > 0) && (
                     <>
-                      <button
-                        onClick={() => handleTabClick('checklist')}
-                        className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors
-                          ${activeTab === 'checklist' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer
-                        `}
-                      >
-                        Checklist
-                      </button>
-
-                      {/* Dropdown Navigation mapped to active units */}
+                      <button onClick={() => handleTabClick('checklist')} className={`whitespace-nowrap px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'checklist' ? 'bg-eips-green/10 text-eips-green' : 'text-gray-600 hover:bg-gray-100'} cursor-pointer`}>Checklist</button>
                       <div className="relative flex items-center ml-2">
-                         <select
-                            value={activeTab.startsWith('u') ? activeTab : ''}
-                            onChange={(e) => {
-                              if (e.target.value) handleTabClick(e.target.value);
-                            }}
-                            className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'hover:bg-gray-50'}`}
-                         >
+                         <select value={activeTab.startsWith('u') ? activeTab : ''} onChange={(e) => { if (e.target.value) handleTabClick(e.target.value); }} className={`appearance-none bg-white border border-gray-300 text-gray-700 py-2 pl-4 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green cursor-pointer transition-colors ${activeTab.startsWith('u') ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'hover:bg-gray-50'}`}>
                             <option value="" disabled>View Unit Plan...</option>
-                            {Array.from({length: loadedConfig.numUnits}, (_, i) => (
-                               <option key={`opt-u${i+1}`} value={`u${i+1}`}>Unit {i+1} Overview</option>
-                            ))}
+                            {Array.from({length: loadedConfig.numUnits}, (_, i) => (<option key={`opt-u${i+1}`} value={`u${i+1}`}>Unit {i+1} Overview</option>))}
                          </select>
                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -2105,42 +1754,24 @@
                       </div>
                     </>
                   )}
-
-                  {/* Far Right Help & Resources Buttons */}
                   <div className="border-l border-gray-300 h-6 mx-1"></div>
-                  <button
-                    onClick={() => handleTabClick('overview')}
-                    className={`whitespace-nowrap flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all border cursor-pointer shadow hover:shadow-md
-                      ${activeTab === 'overview' ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}
-                    `}
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                    Curriculum Overview
+                  <button onClick={() => handleTabClick('overview')} className={`whitespace-nowrap flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all border cursor-pointer shadow hover:shadow-md ${activeTab === 'overview' ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}>
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> Curriculum Overview
                   </button>
-                  <button
-                    onClick={() => handleTabClick('how-to')}
-                    className={`whitespace-nowrap flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all border cursor-pointer shadow hover:shadow-md
-                      ${activeTab === 'how-to' ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}
-                    `}
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    How to use this site
+                  <button onClick={() => handleTabClick('how-to')} className={`whitespace-nowrap flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all border cursor-pointer shadow hover:shadow-md ${activeTab === 'how-to' ? 'bg-eips-green/10 text-eips-green border-eips-green/30' : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'}`}>
+                    <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> How to use this site
                   </button>
-
                 </nav>
               </div>
             </div>
           </header>
 
           <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full">
-            {/* Course Header & Colour Legend displayed globally when data is loaded */}
             {items.length > 0 && activeTab !== 'course' && activeTab !== 'overview' && activeTab !== 'how-to' && loadedConfig && (
               <div className="mb-6">
                 <div className="flex items-center mb-4 ml-1">
                   <img src={subjectIconMap[loadedConfig.subject]} alt={loadedConfig.subject} className="h-10 w-10 mr-4 object-contain" />
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                    Grade {loadedConfig.grade} {loadedConfig.subject}
-                  </h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Grade {loadedConfig.grade} {loadedConfig.subject}</h2>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm select-none">
                   <strong className="text-gray-800 uppercase tracking-wide text-xs">Colour Legend:</strong>
@@ -2156,13 +1787,10 @@
                 </div>
               </div>
             )}
-
             {activeTab === 'course' && renderCourseSelection()}
             {activeTab === 'overview' && renderOverview()}
             {activeTab === 'how-to' && renderHowToUse()}
             {activeTab === 'checklist' && items.length > 0 && renderChecklist()}
-            
-            {/* Render dynamic unit views */}
             {loadedConfig && Array.from({length: loadedConfig.numUnits}, (_, i) => i + 1).map(num => (
                activeTab === `u${num}` && items.length > 0 && <div key={`unit-${num}`}>{renderUnitView(num)}</div>
             ))}
@@ -2170,11 +1798,7 @@
 
           <footer className="bg-white border-t border-gray-200 mt-auto py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm flex items-center justify-center flex-wrap">
-              <a href="https://example.com" className="text-eips-green hover:underline font-medium">Alberta Curriculum Unit Planner</a>
-              &nbsp;&copy; {new Date().getFullYear()} by&nbsp;
-              <a href="https://www.eips.ca" target="_blank" rel="noopener noreferrer" className="text-eips-green hover:underline font-medium">Elk Island Public Schools</a>
-              &nbsp;is licensed under&nbsp;
-              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-eips-green hover:underline font-medium">CC BY-NC-SA 4.0</a>
+              <a href="https://example.com" className="text-eips-green hover:underline font-medium">Alberta Curriculum Unit Planner</a>&nbsp;&copy; {new Date().getFullYear()} by&nbsp;<a href="https://www.eips.ca" target="_blank" rel="noopener noreferrer" className="text-eips-green hover:underline font-medium">Elk Island Public Schools</a>&nbsp;is licensed under&nbsp;<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener noreferrer" className="text-eips-green hover:underline font-medium">CC BY-NC-SA 4.0</a>
               <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style={{ maxWidth: '1em', maxHeight: '1em', marginLeft: '.2em' }} />
               <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style={{ maxWidth: '1em', maxHeight: '1em', marginLeft: '.2em' }} />
               <img src="https://mirrors.creativecommons.org/presskit/icons/nc.svg" alt="" style={{ maxWidth: '1em', maxHeight: '1em', marginLeft: '.2em' }} />
@@ -2182,37 +1806,25 @@
             </div>
           </footer>
 
-          {/* LLM Output Modal */}
           {llmModal.isOpen && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-[60]">
               <div className="bg-white p-6 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
-                  <h3 className="text-xl font-bold text-indigo-900 flex items-center">
-                     <SparkleIcon /> {llmModal.title}
-                  </h3>
-                  <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="text-gray-400 hover:text-gray-600 transition-colors">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
+                  <h3 className="text-xl font-bold text-indigo-900 flex items-center"><SparkleIcon /> {llmModal.title}</h3>
+                  <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="text-gray-400 hover:text-gray-600 transition-colors"><svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
                 </div>
-                
                 <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 p-4 rounded border border-gray-200">
                   {llmModal.isLoading ? (
-                    <div className="flex items-center justify-center h-40 text-indigo-500 font-medium">
-                      <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                      Thinking...
-                    </div>
+                    <div className="flex items-center justify-center h-40 text-indigo-500 font-medium"><svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Thinking...</div>
                   ) : llmModal.error ? (
                     <span className="text-red-600">{llmModal.error}</span>
                   ) : (
                     <>
                       {llmModal.type === 'pt' && llmModal.content && (
                         <div>
-                           <h4 className="font-bold text-indigo-900 mb-1">Scenario</h4>
-                           <p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.scenario}</p>
-                           <h4 className="font-bold text-indigo-900 mb-1">Elements</h4>
-                           <p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.elements}</p>
-                           <h4 className="font-bold text-indigo-900 mb-1">Evaluative Criteria</h4>
-                           <p className="text-sm text-gray-800 whitespace-pre-wrap">{llmModal.content.evaluativeCriteria}</p>
+                           <h4 className="font-bold text-indigo-900 mb-1">Scenario</h4><p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.scenario}</p>
+                           <h4 className="font-bold text-indigo-900 mb-1">Elements</h4><p className="text-sm text-gray-800 mb-4 whitespace-pre-wrap">{llmModal.content.elements}</p>
+                           <h4 className="font-bold text-indigo-900 mb-1">Evaluative Criteria</h4><p className="text-sm text-gray-800 whitespace-pre-wrap">{llmModal.content.evaluativeCriteria}</p>
                         </div>
                       )}
                       {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
@@ -2220,12 +1832,7 @@
                            <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
                            {llmModal.content.map((lesson, idx) => (
                                <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
-                                  <input 
-                                    type="checkbox" 
-                                    className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500"
-                                    checked={llmModal.selectedIndices.includes(idx)}
-                                    onChange={() => handleSelectLesson(idx)} 
-                                  />
+                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectLesson(idx)} />
                                   <div className="flex-1">
                                      <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
                                      <p className="text-sm text-gray-800 mb-2">{lesson.description}</p>
@@ -2240,29 +1847,12 @@
                     </>
                   )}
                 </div>
-
                 <div className="flex justify-end space-x-3 pt-2">
-                  <button 
-                    onClick={() => setLlmModal({ ...llmModal, isOpen: false })}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Close
-                  </button>
+                  <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors">Close</button>
                   {!llmModal.isLoading && !llmModal.error && (
                     <>
-                      <button 
-                        onClick={handleAddToTemplate}
-                        disabled={llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0}
-                        className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}
-                      >
-                        Add to Lesson Template
-                      </button>
-                      <button 
-                        onClick={copyLlmContent}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium shadow-sm hover:bg-indigo-700 transition-colors"
-                      >
-                        Copy to Clipboard
-                      </button>
+                      <button onClick={handleAddToTemplate} disabled={llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0} className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}>Add to Lesson Template</button>
+                      <button onClick={copyLlmContent} className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium shadow-sm hover:bg-indigo-700 transition-colors">Copy to Clipboard</button>
                     </>
                   )}
                 </div>
@@ -2270,94 +1860,41 @@
             </div>
           )}
 
-          {/* Load New Course Confirmation Modal */}
           {showCourseConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
-                <div className="flex items-center mb-2">
-                  <WarningIcon />
-                  <h3 className="text-xl font-bold text-gray-900">Are you sure?</h3>
-                </div>
+                <div className="flex items-center mb-2"><WarningIcon /><h3 className="text-xl font-bold text-gray-900">Are you sure?</h3></div>
                 <p className="text-gray-600 mb-6">Loading a new course will discard all your current unit checklist selections. Proceed?</p>
                 <div className="flex justify-end space-x-3">
-                  <button 
-                    onClick={() => setShowCourseConfirm(false)} 
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={executeLoadCourse} 
-                    className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
-                  >
-                    Load New Course
-                  </button>
+                  <button onClick={() => setShowCourseConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors">Cancel</button>
+                  <button onClick={executeLoadCourse} className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors">Load New Course</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Unsaved Progress Modal */}
           {showSavePrompt && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-                <div className="flex items-center mb-4">
-                  <WarningIcon />
-                  <h3 className="text-xl font-bold text-gray-900">Unsaved Changes</h3>
-                </div>
+                <div className="flex items-center mb-4"><WarningIcon /><h3 className="text-xl font-bold text-gray-900">Unsaved Changes</h3></div>
                 <p className="text-gray-600 mb-6">You have made changes to the checklist that haven't been saved. Would you like to save your progress before navigating away?</p>
                 <div className="flex justify-end space-x-3">
-                  <button 
-                    onClick={() => { setShowSavePrompt(false); setPendingTab(null); }} 
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setActiveTab(pendingTab);
-                      setShowSavePrompt(false);
-                      setPendingTab(null);
-                    }} 
-                    className="px-4 py-2 bg-white border border-eips-orange text-eips-orange rounded-md font-medium hover:bg-orange-50 transition-colors"
-                  >
-                    Leave Without Saving
-                  </button>
-                  <button 
-                    onClick={() => {
-                      handleSaveProgress();
-                      setActiveTab(pendingTab);
-                      setShowSavePrompt(false);
-                      setPendingTab(null);
-                    }} 
-                    className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
-                  >
-                    Save & Continue
-                  </button>
+                  <button onClick={() => { setShowSavePrompt(false); setPendingTab(null); }} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors">Cancel</button>
+                  <button onClick={() => { setActiveTab(pendingTab); setShowSavePrompt(false); setPendingTab(null); }} className="px-4 py-2 bg-white border border-eips-orange text-eips-orange rounded-md font-medium hover:bg-orange-50 transition-colors">Leave Without Saving</button>
+                  <button onClick={() => { handleSaveProgress(); setActiveTab(pendingTab); setShowSavePrompt(false); setPendingTab(null); }} className="px-4 py-2 bg-eips-green text-white rounded-md font-medium hover:bg-opacity-90 transition-colors">Save & Continue</button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Reset Confirmation Modal */}
           {showResetConfirm && (
             <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
               <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Are you sure?</h3>
                 <p className="text-gray-600 mb-6">This will clear all unit selections from the checklist. This action cannot be undone.</p>
                 <div className="flex justify-end space-x-3">
-                  <button 
-                    onClick={() => setShowResetConfirm(false)} 
-                    className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors"
-                  >
-                    No
-                  </button>
-                  <button 
-                    onClick={handleReset} 
-                    className="px-4 py-2 bg-eips-orange text-white rounded-md font-medium hover:bg-opacity-90 transition-colors"
-                  >
-                    Yes
-                  </button>
+                  <button onClick={() => setShowResetConfirm(false)} className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md font-medium hover:bg-gray-300 transition-colors">No</button>
+                  <button onClick={handleReset} className="px-4 py-2 bg-eips-orange text-white rounded-md font-medium hover:bg-opacity-90 transition-colors">Yes</button>
                 </div>
               </div>
             </div>

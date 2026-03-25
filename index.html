@@ -52,7 +52,7 @@
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      const attemptFetch = async (modelName, keyToUse, retries = 1) => {
+      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
         try {
           const response = await fetch(url, {
@@ -69,15 +69,10 @@
           const data = await response.json();
           return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
         } catch (error) {
-          // Identify terminal errors that should not be retried on the same model
-          const isTerminalError = error.message.includes('not found') || 
-                                  error.message.includes('not supported') || 
-                                  error.message.includes('API key') ||
-                                  error.message.includes('unregistered callers') ||
-                                  error.message.toLowerCase().includes('quota');
-                                  
-          if (retries > 0 && !isTerminalError) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+          // Do not retry on terminal client errors like bad keys or hard quota locks
+          const isTerminal = error.message.includes('API key not valid') || error.message.includes('unregistered caller');
+          if (retries > 0 && !isTerminal) {
+            await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5s delay to clear brief rate limits
             return attemptFetch(modelName, keyToUse, retries - 1);
           }
           throw error;
@@ -93,35 +88,12 @@
         }
       } else {
         // --- ROUTE 2: Live Website Production ---
-        // Cascade sequence: Starts with the newest Free Tier model and falls back through stable alternatives
-        const productionModels = [
-          'gemini-2.0-flash',        
-          'gemini-1.5-flash',        
-          'gemini-1.5-flash-latest', 
-          'gemini-1.5-pro'           
-        ];
-        
-        let lastErrorMsg = "";
-        
-        for (const model of productionModels) {
-          try {
-            return await attemptFetch(model, apiKey.trim());
-          } catch (err) {
-            lastErrorMsg = err.message;
-            const lowerErr = lastErrorMsg.toLowerCase();
-            
-            // If the key is outright rejected, stop cascading and alert the user immediately
-            // NOTE: 'quota' is intentionally removed from this list so the cascade safely moves to the next model!
-            if (lowerErr.includes('api key not valid') || lowerErr.includes('api_key_invalid') || lowerErr.includes('unregistered caller')) {
-              throw new Error(`Google API Rejected: ${lastErrorMsg}`);
-            }
-            
-            // If it was just a "not found" (Google retired it), "not supported", or a model-specific quota limit, silently loop to the next model
-            console.warn(`Model ${model} unavailable, automatically trying next supported model...`);
-          }
+        // Hardcoded to the proven 1.5-flash model. No loops, no cascades, just the direct connection that works.
+        try {
+          return await attemptFetch('gemini-1.5-flash', apiKey.trim());
+        } catch (err) {
+          throw new Error(`Google API Rejected: ${err.message}`);
         }
-        
-        throw new Error(`All supported models failed. Last error: ${lastErrorMsg}`);
       }
     };
 

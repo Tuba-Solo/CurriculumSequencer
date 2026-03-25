@@ -73,7 +73,8 @@
           const isTerminalError = error.message.includes('not found') || 
                                   error.message.includes('not supported') || 
                                   error.message.includes('API key') ||
-                                  error.message.includes('unregistered callers');
+                                  error.message.includes('unregistered callers') ||
+                                  error.message.toLowerCase().includes('quota');
                                   
           if (retries > 0 && !isTerminalError) {
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -109,12 +110,13 @@
             lastErrorMsg = err.message;
             const lowerErr = lastErrorMsg.toLowerCase();
             
-            // If the key is outright rejected or out of quota, stop cascading and alert the user immediately
-            if (lowerErr.includes('api key not valid') || lowerErr.includes('api_key_invalid') || lowerErr.includes('quota') || lowerErr.includes('unregistered caller')) {
+            // If the key is outright rejected, stop cascading and alert the user immediately
+            // NOTE: 'quota' is intentionally removed from this list so the cascade safely moves to the next model!
+            if (lowerErr.includes('api key not valid') || lowerErr.includes('api_key_invalid') || lowerErr.includes('unregistered caller')) {
               throw new Error(`Google API Rejected: ${lastErrorMsg}`);
             }
             
-            // If it was just a "not found" (Google retired it) or "not supported", silently loop to the next model
+            // If it was just a "not found" (Google retired it), "not supported", or a model-specific quota limit, silently loop to the next model
             console.warn(`Model ${model} unavailable, automatically trying next supported model...`);
           }
         }

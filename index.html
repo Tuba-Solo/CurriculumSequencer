@@ -52,12 +52,8 @@
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      // Restore the exact model that worked previously and permanently remove the empty-key fallback logic
-      const modelName = 'gemini-2.5-flash-preview-09-2025';
-      const keyToUse = apiKey || "";
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
-
-      const attemptFetch = async (retries = 2) => {
+      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
         try {
           const response = await fetch(url, {
             method: 'POST',
@@ -75,16 +71,30 @@
         } catch (error) {
           if (retries > 0 && !error.message.includes('not found') && !error.message.includes('API key') && !error.message.includes('unregistered callers')) {
             await new Promise(resolve => setTimeout(resolve, 1000));
-            return attemptFetch(retries - 1);
+            return attemptFetch(modelName, keyToUse, retries - 1);
           }
           throw error;
         }
       };
 
       try {
-         return await attemptFetch();
-      } catch (finalError) {
-         throw new Error(`Google API Rejected: ${finalError.message}`);
+         // 1. Primary Attempt: Use the standard public model that works for personal API keys in production
+         return await attemptFetch('gemini-1.5-flash', apiKey || "");
+      } catch (err) {
+         // 2. Canvas Proxy Fallback: The internal testing Canvas strictly requires the preview model.
+         // If the proxy intercepts the public model, it throws a "not found" error.
+         if (err.message.includes('not found')) {
+            console.warn('Public model intercepted. Attempting Canvas environment preview model...');
+            try {
+               // Crucial: Pass the apiKey here too, so we never trigger an "unregistered caller" error
+               return await attemptFetch('gemini-2.5-flash-preview-09-2025', apiKey || "");
+            } catch (fallbackErr) {
+               throw new Error(fallbackErr.message);
+            }
+         }
+         
+         // Bubble up any real errors (like Invalid API Key) directly to the UI
+         throw new Error(`Google API Rejected: ${err.message}`);
       }
     };
 

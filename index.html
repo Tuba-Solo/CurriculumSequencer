@@ -246,8 +246,20 @@
 
     const FormattedDescription = ({ text, className }) => {
       if (!text) return null;
+      
+      const renderBold = (str) => {
+         if (!str) return str;
+         const parts = str.split(/(\*\*.*?\*\*)/g);
+         return parts.map((part, idx) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+               return <strong key={idx}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+         });
+      };
+
       const parts = text.split(/(?=(?:^|\s)- )/g);
-      if (parts.length === 1) return <span className={className}>{text}</span>;
+      if (parts.length === 1) return <span className={className}>{renderBold(text)}</span>;
       return (
         <div className={className}>
           {parts.map((part, index) => {
@@ -256,11 +268,11 @@
               return (
                 <div key={index} className="flex items-start mt-1 ml-5">
                   <span className="mr-2 text-eips-green font-bold">&bull;</span>
-                  <span>{trimmed.substring(2)}</span>
+                  <span>{renderBold(trimmed.substring(2))}</span>
                 </div>
               );
             }
-            return <span key={index}>{part}</span>;
+            return <span key={index}>{renderBold(part)}</span>;
           })}
         </div>
       );
@@ -273,6 +285,17 @@
       const elements = [];
       let currentList = [];
       let listType = null;
+
+      const renderBold = (str) => {
+         if (!str) return str;
+         const parts = str.split(/(\*\*.*?\*\*)/g);
+         return parts.map((part, idx) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+               return <strong key={idx}>{part.slice(2, -2)}</strong>;
+            }
+            return part;
+         });
+      };
 
       const pushList = (key) => {
         if (currentList.length > 0) {
@@ -290,15 +313,15 @@
         if (isBullet) {
           if (listType === 'ol') pushList(`list-${i}`);
           listType = 'ul';
-          currentList.push(<li key={i}>{isBullet[1]}</li>);
+          currentList.push(<li key={i}>{renderBold(isBullet[1])}</li>);
         } else if (isNumber) {
           if (listType === 'ul') pushList(`list-${i}`);
           listType = 'ol';
-          currentList.push(<li key={i}>{isNumber[2]}</li>);
+          currentList.push(<li key={i}>{renderBold(isNumber[2])}</li>);
         } else {
           pushList(`list-${i}`);
           if (trimmed !== '') {
-            elements.push(<p key={`p-${i}`} className="mb-2 leading-relaxed">{line}</p>);
+            elements.push(<p key={`p-${i}`} className="mb-2 leading-relaxed">{renderBold(line)}</p>);
           }
         }
       });
@@ -325,7 +348,7 @@
       const renderList = (list) => {
         if (!list || list.length === 0) return '<p><i>None selected</i></p>';
         return `<ul>${list.map(i => {
-          let descHtml = i.desc;
+          let descHtml = i.desc.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
           const parts = descHtml.split(/(?=(?:^|\s)- )/g);
           if (parts.length > 1) {
             descHtml = parts.map(p => {
@@ -343,7 +366,8 @@
       // Robust text formatter for Word Document (handles line breaks and bullet points)
       const formatTextForWord = (text) => {
         if (!text) return '';
-        const lines = text.split('\n');
+        const processedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        const lines = processedText.split('\n');
         let html = '';
         let inList = false;
         let listType = '';

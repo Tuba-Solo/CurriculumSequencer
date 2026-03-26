@@ -1209,16 +1209,6 @@
       }, [items, searchTerm, hierarchyFilter]);
 
       const trackableItems = useMemo(() => {
-         const kuspItems = items.filter(i => {
-            const cat = getCategory(i.code);
-            return cat === 'knows' || cat === 'skills' || cat === 'understandings';
-         });
-         if (kuspItems.length > 0) return kuspItems;
-         const loItems = items.filter(i => {
-            const cat = getCategory(i.code);
-            return cat !== 'other' && cat !== 'questions';
-         });
-         if (loItems.length > 0) return loItems;
          return items;
       }, [items]);
 
@@ -1716,7 +1706,7 @@
                   </div>
                   <div className="w-[100px] shrink-0 px-4 py-2 flex flex-col items-center justify-center">
                     <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Use Count</span>
-                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title="Total Specific Outcomes (U, K, SP) Mapped">
+                    <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title="Total Curriculum Items Mapped">
                       {totalSelectedCount} / {totalTrackableCount}
                     </span>
                   </div>
@@ -1726,7 +1716,7 @@
                     return (
                       <div key={`th-u${i+1}`} className="w-[80px] shrink-0 px-2 py-2 flex flex-col items-center justify-center border-l border-gray-200/50">
                         <span className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight">Unit {i+1}</span>
-                        <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title={`Specific Outcomes in Unit ${i+1}`}>
+                        <span className="mt-1 text-[10px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded border border-gray-300 shadow-sm" title={`Curriculum Items in Unit ${i+1}`}>
                           {unitSelectedCount}
                         </span>
                       </div>
@@ -1770,11 +1760,7 @@
         const currentUnitData = unitData[unitNum] || {};
         const unitName = currentUnitData.title ? `Unit ${unitNum} - ${currentUnitData.title}` : `Unit ${unitNum}`;
         
-        const trackableUnitItems = unitItems.filter(i => {
-           const cat = getCategory(i.code);
-           return cat === 'knows' || cat === 'skills' || cat === 'understandings';
-        });
-        const displayCount = trackableUnitItems.length > 0 ? trackableUnitItems.length : unitItems.length;
+        const displayCount = unitItems.length;
 
         const removeIndividualItem = (category, indexToRemove) => {
           setUnitData(prev => {
@@ -1857,7 +1843,7 @@
                       Grade {loadedConfig.grade} • {loadedConfig.subject}
                     </div>
                   )}
-                  <p className="text-gray-500 text-sm">{displayCount} specific outcomes allocated to this unit.</p>
+                  <p className="text-gray-500 text-sm">{displayCount} curriculum items allocated to this unit.</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">

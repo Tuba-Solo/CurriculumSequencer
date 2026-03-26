@@ -342,8 +342,8 @@
             <tr><th>Title of Unit</th><td><strong>${unitName}</strong></td></tr>
             <tr><th>Grade Level</th><td><strong>${config && config.grade ? 'Grade ' + config.grade : ''}</strong></td></tr>
             <tr><th>Subject</th><td><strong>${config && config.subject ? config.subject : ''}</strong></td></tr>
-            <tr><th>Time Frame</th><td></td></tr>
-            <tr><th>Developed By</th><td></td></tr>
+            <tr><th>Time Frame</th><td><strong>${unitDataForExport?.timeframe || ''}</strong></td></tr>
+            <tr><th>Developed By</th><td><strong>${unitDataForExport?.developedBy || ''}</strong></td></tr>
           </table>
           <table>
             <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
@@ -1711,18 +1711,48 @@
               </div>
             </div>
 
-            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-              <label className="block text-base font-bold text-gray-900 mb-2">Give your unit a title</label>
-              <input 
-                type="text" 
-                value={currentUnitData.title || ''} 
-                onChange={(e) => setUnitData(prev => ({
-                  ...prev,
-                  [unitNum]: { ...(prev[unitNum] || {}), title: e.target.value }
-                }))}
-                placeholder={`e.g., Introduction to ${loadedConfig?.subject || 'the course'}`}
-                className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
-              />
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-4">
+              <div>
+                <label className="block text-base font-bold text-gray-900 mb-2">Give your unit a title</label>
+                <input 
+                  type="text" 
+                  value={currentUnitData.title || ''} 
+                  onChange={(e) => setUnitData(prev => ({
+                    ...prev,
+                    [unitNum]: { ...(prev[unitNum] || {}), title: e.target.value }
+                  }))}
+                  placeholder={`e.g., Introduction to ${loadedConfig?.subject || 'the course'}`}
+                  className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Timeframe</label>
+                  <input 
+                    type="text" 
+                    value={currentUnitData.timeframe || ''} 
+                    onChange={(e) => setUnitData(prev => ({
+                      ...prev,
+                      [unitNum]: { ...(prev[unitNum] || {}), timeframe: e.target.value }
+                    }))}
+                    placeholder="e.g., 3 weeks, 10 class periods..."
+                    className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-900 mb-2">Developed by</label>
+                  <input 
+                    type="text" 
+                    value={currentUnitData.developedBy || ''} 
+                    onChange={(e) => setUnitData(prev => ({
+                      ...prev,
+                      [unitNum]: { ...(prev[unitNum] || {}), developedBy: e.target.value }
+                    }))}
+                    placeholder="Your name"
+                    className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100 shadow-sm">

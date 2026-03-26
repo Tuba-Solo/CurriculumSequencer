@@ -380,21 +380,21 @@
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Evaluative Criteria</strong></td>
-              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Evidence</strong></td>
-              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Conversation, Observation, or Product?</strong></td>
+              <td style="width: 25%; background-color: #f8fafc;"><strong>Evaluative Criteria</strong></td>
+              <td style="width: 60%; background-color: #f8fafc;"><strong>Evidence</strong></td>
+              <td style="width: 15%; background-color: #f8fafc; text-align: center;"><strong>COP</strong></td>
             </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
-                <td style="width: 33.33%;">${e.evaluativeCriteria}</td>
-                <td style="width: 33.33%;"><b>[${e.assessmentType}]</b><br>${e.evidence}</td>
-                <td style="width: 33.33%;">${e.method}</td>
+                <td style="width: 25%;">${e.evaluativeCriteria}</td>
+                <td style="width: 60%;"><b>[${e.assessmentType}]</b><br>${e.evidence}</td>
+                <td style="width: 15%; text-align: center;">${e.method}</td>
               </tr>
             `).join('') : `
               <tr>
-                <td style="width: 33.33%;"><br><br><br><br></td>
-                <td style="width: 33.33%;"><br><br><br><br></td>
-                <td style="width: 33.33%;"><br><br><br><br></td>
+                <td style="width: 25%;"><br><br><br><br></td>
+                <td style="width: 60%;"><br><br><br><br></td>
+                <td style="width: 15%;"><br><br><br><br></td>
               </tr>
             `}
             <tr>
@@ -1745,6 +1745,15 @@
                       else handleGenerateLessonIdeas(unitItems, unitNum); 
                     }} className="px-6 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors">Generate Content</button>
                   </div>
+                </div>
+              )}
+
+              {apiKey && (
+                <div className="mt-5 pt-4 border-t border-indigo-200/60 flex items-start text-xs text-indigo-800/80 leading-relaxed">
+                  <svg className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                  <p>
+                    <strong>Disclaimer:</strong> AI-generated content can make mistakes, lack specific context, or reflect biases. Always exercise your professional judgement to review and refine outputs to ensure they align with your students' needs and pedagogical standards. EIPS employees are encouraged to review <a href="https://www.eips.ca/about-us/administrative-procedures/142" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-indigo-900 transition-colors">Administrative Procedure 142 "Artificial Intelligence"</a>.
+                  </p>
                 </div>
               )}
             </div>

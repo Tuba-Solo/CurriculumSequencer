@@ -1619,8 +1619,8 @@
       const renderUnitView = (unitNum) => {
         const unitField = `u${unitNum}`;
         const unitItems = items.filter(item => item[unitField]);
-        const unitName = `Unit ${unitNum}`;
         const currentUnitData = unitData[unitNum] || {};
+        const unitName = currentUnitData.title ? `Unit ${unitNum} - ${currentUnitData.title}` : `Unit ${unitNum}`;
         
         const trackableUnitItems = unitItems.filter(i => {
            const cat = getCategory(i.code);
@@ -1709,6 +1709,20 @@
                   <DownloadIcon /> Generate Unit Plan Template
                 </button>
               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+              <label className="block text-base font-bold text-gray-900 mb-2">Give your unit a title</label>
+              <input 
+                type="text" 
+                value={currentUnitData.title || ''} 
+                onChange={(e) => setUnitData(prev => ({
+                  ...prev,
+                  [unitNum]: { ...(prev[unitNum] || {}), title: e.target.value }
+                }))}
+                placeholder={`e.g., Introduction to ${loadedConfig?.subject || 'the course'}`}
+                className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+              />
             </div>
 
             <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 rounded-lg border border-indigo-100 shadow-sm">

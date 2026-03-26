@@ -38,7 +38,7 @@ OI.1.GQ.2.LO.2.U.1.K.1,A non-perfect square is the product of two identical irra
 OI.1.GQ.2.LO.2.U.1.K.2,"Every positive real number has exactly two square roots, one positive and one negative."
 OI.1.GQ.2.LO.2.U.1.K.3,Zero is the only real number that has exactly one square root.
 OI.1.GQ.2.LO.2.U.1.K.4,Negative real numbers do not have square roots that are real numbers.
-OI.1.GQ.2.LO.2.U.1.K.5,"The equation 𝑥2 = 𝑎 has two solutions, √𝑎 and – √𝑎​."
+OI.1.GQ.2.LO.2.U.1.K.5,"The equation 𝑥^2^ = 𝑎 has two solutions, √𝑎 and – √𝑎​."
 OI.1.GQ.2.LO.2.U.1.K.6,"The radical sign, √□​, is the conventional notation that indicates the positive square root (principal square root) of a number."
 OI.1.GQ.2.LO.2.U.1.K.7,"The radical sign with a negative sign in front, −√□, indicates the negative square root of a number (secondary square root)."
 OI.1.GQ.2.LO.2.U.1.K.8,The notation 𝓍 = ±√𝑎​ indicates 𝑥 = +√𝑎​  or 𝑥 = −√𝑎​.
@@ -59,8 +59,8 @@ OI.1.GQ.3.LO.3.U.1,A ratio can be interpreted as a multiplicative comparison.
 OI.1.GQ.3.LO.3.U.1.K.1,A multiplicative comparison describes the multiplicative relationship between one quantity and another.
 OI.1.GQ.3.LO.3.U.1.K.2,Either of the quantities in a multiplicative comparison can be described as a multiple of the other.
 OI.1.GQ.3.LO.3.U.1.K.3,"The factor that relates two quantities in a ratio is the constant of proportionality, k."
-OI.1.GQ.3.LO.3.U.1.K.4,"When quantity aa in ratio a:ba:b is directly proportional to quantity b, k = a/b​."
-OI.1.GQ.3.LO.3.U.1.K.5,"When quantity aa in ratio a : b is inversely proportional to quantity b, k = ab."
+OI.1.GQ.3.LO.3.U.1.K.4,"When quantity a in ratio a:b is directly proportional to quantity b, k = a/b​."
+OI.1.GQ.3.LO.3.U.1.K.5,"When quantity a in ratio a : b is inversely proportional to quantity b, k = ab."
 OI.1.GQ.3.LO.3.U.1.K.6,"A constant of proportionality can be expressed as a decimal number and a ratio, and is the same for any equivalent ratios."
 OI.1.GQ.3.LO.3.U.1.K.7,"A constant of proportionality can be referred to by various names, depending on the context, including
 - slope
@@ -81,14 +81,14 @@ OI.2.GQ.4.LO.4.U.1.K.3,"A polynomial is the sum of monomials in which
 - the coefficients are real numbers
 - the exponent of the variable in each term is a natural number"
 OI.2.GQ.4.LO.4.U.1.K.4,A power of a variable represents a product of several copies of the variable.
-OI.2.GQ.4.LO.4.U.1.K.5,"The conventional representation of an algebraic term with a coefficient of one is a variable without a coefficient, e.g., 1𝑥2 = 𝑥2."
-OI.2.GQ.4.LO.4.U.1.K.6,"The conventional representation of a linear term is a term without the exponent, e.g., 𝑥1 = 𝑥."
-OI.2.GQ.4.LO.4.U.1.K.7,"The conventional representation of a constant term is a number without a variable, e.g., 5𝑥0 = 5."
+OI.2.GQ.4.LO.4.U.1.K.5,"The conventional representation of an algebraic term with a coefficient of one is a variable without a coefficient, e.g., 1𝑥^2^ = 𝑥^2^."
+OI.2.GQ.4.LO.4.U.1.K.6,"The conventional representation of a linear term is a term without the exponent, e.g., 𝑥^1^ = 𝑥."
+OI.2.GQ.4.LO.4.U.1.K.7,"The conventional representation of a constant term is a number without a variable, e.g., 5𝑥^0^ = 5."
 OI.2.GQ.4.LO.4.U.1.K.8,"Polynomials can be classified according to the number of algebraic terms, i.e.,
 - Monomials have one term.
 - Binomials have two terms.
 - Trinomials have three terms."
-OI.2.GQ.4.LO.4.U.1.K.9,"The value of the exponent in an algebraic term is called the degree of the algebraic term, e.g., 𝑥2 has a degree of 2."
+OI.2.GQ.4.LO.4.U.1.K.9,"The value of the exponent in an algebraic term is called the degree of the algebraic term, e.g., 𝑥^2^ has a degree of 2."
 OI.2.GQ.4.LO.4.U.1.K.10,The degree of a polynomial is the greatest degree of any of its algebraic terms.
 OI.2.GQ.4.LO.4.U.1.K.11,"Polynomials can be named according to degree, i.e.,
 - Degree of 1 is linear.
@@ -113,7 +113,7 @@ OI.2.GQ.5,In what ways can flexibility with numbers facilitate the process of so
 OI.2.GQ.5.LO.5,Students solve single-variable linear equations involving rational numbers.
 OI.2.GQ.5.LO.5.U.1,Any factor or multiple of an equation is an equivalent equation.
 OI.2.GQ.5.LO.5.U.1.K.1,Multiplying or dividing both sides of an equation by the same number results in an equivalent equation.
-OI.2.GQ.5.LO.5.U.1.K.2,"An equation including rational numbers can be expressed as an equivalent equation with integers, e.g., (1/2)𝑥 + 3 = 5  can be expressed as 𝑥 + 6 = 10."
+OI.2.GQ.5.LO.5.U.1.K.2,"An equation including rational numbers can be expressed as an equivalent equation with integers, e.g., (1/2) 𝑥 + 3 = 5  can be expressed as 𝑥 + 6 = 10."
 OI.2.GQ.5.LO.5.U.1.SP.1,Express an equation with rational coefficients as an equivalent equation with integers.
 OI.2.GQ.5.LO.5.U.1.SP.2,Solve equations with rational coefficients.
 OI.2.GQ.5.LO.5.U.1.SP.3,"Solve problems, using equations with rational coefficients."
@@ -232,7 +232,7 @@ OI.5.GQ.10.LO.10.U.1.K.3,A horizontal line has a slope of zero.
 OI.5.GQ.10.LO.10.U.1.K.4,A vertical line has an undefined slope.
 OI.5.GQ.10.LO.10.U.1.K.5,A line that slants in an upward direction from left to right indicates a positive slope.
 OI.5.GQ.10.LO.10.U.1.K.6,A line that slants in a downward direction from left to right indicates a negative slope.
-OI.5.GQ.10.LO.10.U.1.K.7,"Slope, m, of a line can be described by the ratio of the rise (vertical displacement) to the run (horizontal displacement) between two points on the line, e.g., between points 𝑃(𝑥1,𝑦1) and 𝑄(𝑥2,𝑦2), slope is represented symbolically as 𝑚 = 𝑦2−𝑦1 / 𝑥2 – 𝑥1"
+OI.5.GQ.10.LO.10.U.1.K.7,"Slope, m, of a line can be described by the ratio of the rise (vertical displacement) to the run (horizontal displacement) between two points on the line, e.g., between points 𝑃(𝑥_1_,𝑦_1_) and 𝑄(𝑥_2_,𝑦_2_), slope is represented symbolically as 𝑚 = 𝑦_2_−𝑦_1_ / 𝑥_2_ – 𝑥_1_"
 OI.5.GQ.10.LO.10.U.1.K.8,A linear function can be represented by a non-vertical straight line or a set of points that follow a non-vertical linear path.
 OI.5.GQ.10.LO.10.U.1.K.9,Slope provides insight into the rate of change modelled by a linear function.
 OI.5.GQ.10.LO.10.U.1.K.10,"Rate of change describes the change in one variable with respect to another variable in a situation modelled by a function, such as

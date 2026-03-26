@@ -522,7 +522,7 @@
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
                  <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
-                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong>[${sa.category}] ${formatTextForWord(sa.title)}:</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<br><br><br><br><br>'}
+                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong>[${sa.category}] ${formatTextForWord(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<br><br><br><br><br>'}
               </td>
             </tr>
           </table>

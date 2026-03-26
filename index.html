@@ -204,6 +204,30 @@
       return 'other'; 
     };
 
+    const getRequiredParents = (code) => {
+      const parents = [];
+      if (!code) return parents;
+      const cat = getCategory(code);
+      const isChild = cat === 'understandings' || cat === 'knows' || cat === 'skills';
+      
+      if (isChild) {
+         const oiMatch = code.match(/(.*?OI\.\d+)/);
+         if (oiMatch) parents.push(oiMatch[1]);
+         
+         const gqMatch = code.match(/(.*?GQ\.\d+)/);
+         if (gqMatch) parents.push(gqMatch[1]);
+         
+         const loMatch = code.match(/(.*?LO\.\d+)/);
+         if (loMatch) parents.push(loMatch[1]);
+         
+         if (cat === 'knows' || cat === 'skills') {
+            const uMatch = code.match(/(.*?U\.\d+)/);
+            if (uMatch) parents.push(uMatch[1]);
+         }
+      }
+      return parents;
+    };
+
     const colorPalette = [
       { light: 'bg-blue-100', hover: 'hover:bg-blue-200', border: 'border-blue-300' },
       { light: 'bg-orange-100', hover: 'hover:bg-orange-200', border: 'border-orange-300' },
@@ -1257,6 +1281,23 @@
         return Array.from(groups).sort((a, b) => a - b);
       }, [items]);
 
+      const lockedItemsPerUnit = useMemo(() => {
+        const locked = {};
+        if (!loadedConfig) return locked;
+        for (let i = 1; i <= loadedConfig.numUnits; i++) {
+          const uField = `u${i}`;
+          const lockedCodes = new Set();
+          items.forEach(item => {
+            if (item[uField]) {
+              const parents = getRequiredParents(item.code);
+              parents.forEach(p => lockedCodes.add(p));
+            }
+          });
+          locked[uField] = lockedCodes;
+        }
+        return locked;
+      }, [items, loadedConfig]);
+
       const groupedCards = useMemo(() => {
         const groups = [];
         let currentCard = null;
@@ -1612,13 +1653,16 @@
               {Array.from({length: unitCount}, (_, i) => {
                 const uField = `u${i+1}`;
                 const isLastCol = i === unitCount - 1;
+                const isLocked = lockedItemsPerUnit[uField]?.has(item.code);
                 return (
                   <div key={uField} className={`w-[80px] shrink-0 px-4 py-4 flex justify-center items-start border-l border-gray-200/50 ${isFirst && isLastCol ? 'rounded-tr-lg ' : ''}${isLast && isLastCol ? 'rounded-br-lg ' : ''}`}>
                     <input
                       type="checkbox"
-                      className="h-5 w-5 text-eips-green focus:ring-eips-green border-gray-400 rounded cursor-pointer mt-0.5"
+                      className={`h-5 w-5 text-eips-green focus:ring-eips-green border-gray-400 rounded mt-0.5 ${isLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                       checked={item[uField]}
+                      disabled={isLocked}
                       onChange={() => toggleUnit(item.id, uField)}
+                      title={isLocked ? "This parent item is locked because one or more of its child items are selected. Deselect the child items to unlock." : ""}
                     />
                   </div>
                 );

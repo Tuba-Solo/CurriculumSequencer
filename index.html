@@ -2106,25 +2106,24 @@
                            ))}
                         </div>
                       )}
-                {currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0 && (
-                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
-                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].otherEvidence; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Evidence"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Other Evidence</h3>
-                    <div className="space-y-4">
-                      {currentUnitData.otherEvidence.map((ev, i) => (
-                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
-                          <h4 className="font-bold text-base text-gray-900 mb-2">{ev.title}</h4>
-                          <div className="flex items-center gap-2 mb-2">
-                             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-200">{ev.assessmentType}</span>
-                             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
-                          </div>
-                          <p className="text-sm text-gray-800 mb-2"><b>Evidence:</b> {ev.evidence}</p>
-                          <p className="text-xs text-gray-600"><b>Evaluative Criteria:</b> {ev.evaluativeCriteria}</p>
+
+                      {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
+                        <div className="space-y-3">
+                           <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
+                           {llmModal.content.map((lesson, idx) => (
+                               <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
+                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
+                                  <div className="flex-1">
+                                     <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
+                                     <p className="text-sm text-gray-800 mb-2">{lesson.description}</p>
+                                     <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps}</p>
+                                     <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {lesson.competencies}</p>
+                                     <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
+                                  </div>
+                               </label>
+                           ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      )}
                     </>
                   )}
                 </div>

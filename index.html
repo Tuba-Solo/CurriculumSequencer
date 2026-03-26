@@ -136,11 +136,12 @@
                  if ('competencies' in item) item.competencies = normalize(item.competencies);
                  if ('successCriteria' in item) item.successCriteria = normalize(item.successCriteria);
                  
-                 // New keys for Other Evidence
+                 // Keys for Other Evidence & Self Assessment
                  if ('evaluativeCriteria' in item) item.evaluativeCriteria = normalize(item.evaluativeCriteria);
                  if ('evidence' in item) item.evidence = normalize(item.evidence);
                  if ('method' in item) item.method = normalize(item.method);
                  if ('assessmentType' in item) item.assessmentType = normalize(item.assessmentType);
+                 if ('category' in item) item.category = normalize(item.category);
              });
           }
 
@@ -343,6 +344,7 @@
       const tgList = unitDataForExport?.transferGoals || [];
       const pt = unitDataForExport?.performanceTask;
       const evList = unitDataForExport?.otherEvidence || [];
+      const saList = unitDataForExport?.selfAssessments || [];
       const lessons = unitDataForExport?.lessons || [];
 
       const renderList = (list) => {
@@ -505,7 +507,7 @@
             </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
-                <td style="width: 25%;"><strong>${formatTextForWord(e.title)}</strong><br><br>${formatTextForWord(e.evaluativeCriteria)}</td>
+                <td style="width: 25%;"><strong>${e.title}</strong><br><br>${formatTextForWord(e.evaluativeCriteria)}</td>
                 <td style="width: 60%;"><b>[${e.assessmentType}]</b><br>${formatTextForWord(e.evidence)}</td>
                 <td style="width: 15%; text-align: center;">${e.method}</td>
               </tr>
@@ -517,9 +519,12 @@
               </tr>
             `}
             <tr>
-              <td colspan="3"><h2>Student Self-Assessment</h2><p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p></td>
+              <td colspan="3">
+                 <h2>Student Self-Assessment</h2>
+                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
+                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong>[${sa.category}] ${formatTextForWord(sa.title)}:</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<br><br><br><br><br>'}
+              </td>
             </tr>
-            <tr><td colspan="3"><br><br><br><br><br></td></tr>
           </table>
           <table>
             <tr><th colspan="7">Stage 3 - Learning Plan</th></tr>
@@ -1059,6 +1064,28 @@
         }
       };
 
+      // NEW AI TOOL: Student Self-Assessment
+      const handleGenerateSelfAssessment = async (unitItems, unitNum) => {
+        if (!apiKey) return;
+        setActiveAiTool(null);
+        setLlmModal({ isOpen: true, type: 'selfAssessment', unitNum, selectedIndices: [], title: 'Brainstorming Self-Assessments...', content: null, isLoading: true, error: '' });
+        
+        const context = buildPromptContext(unitItems);
+        let prompt = `${context}\n\nYou are an expert Curriculum Designer specializing in Grant Wiggins and Jay McTighe's Understanding by Design (UbD) framework. Your task is to analyze the provided list of curricular outcomes and generate a selection of effective student self-assessment and reflection strategies.\n\nContext: What is Self-Assessment in UbD?\nIn the UbD framework, self-assessment and reflection are vital for developing metacognition. Students must be given formal and informal opportunities to self-evaluate their progress, reflect on their learning process, and adjust their strategies based on feedback and clear performance criteria.\n\nRules for Generating Self-Assessment Ideas:\n1. Metacognitive Focus: The activities must require students to think about *how* they learned and *why* it matters, rather than just listing *what* they memorized.\n2. Alignment: The strategies must directly tie back to the specific transfer goals, outcomes, or essential questions provided by the user.\n3. Actionable & Concrete: Do not suggest vague concepts like "have students reflect." Instead, provide specific, implementable protocols (e.g., "I used to think / Now I think," rubric co-creation, portfolio defense).\n4. Variety: Provide a mix of quick, ongoing formative self-assessments and deeper, summative reflections tied to a final performance task.\n5. Autonomy: Frame the assessments so the student is the active agent in evaluating their own understanding against established standards.`;
+        
+        if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
+        
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.`;
+
+        try {
+          const response = await generateGeminiContent(prompt, apiKey, true);
+          const parsedData = parseLLMResponse(response);
+          setLlmModal(prev => ({ ...prev, title: 'Student Self-Assessment Ideas', content: parsedData, isLoading: false }));
+        } catch (err) {
+          setLlmModal(prev => ({ ...prev, title: 'Generation Failed', error: err.message, isLoading: false }));
+        }
+      };
+
       const handleGenerateLessonIdeas = async (unitItems, unitNum) => {
         if (!apiKey) return;
         setActiveAiTool(null);
@@ -1116,6 +1143,15 @@
                  [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), otherEvidence: [...existing, ...selectedEvidence] }
               };
            });
+        } else if (llmModal.type === 'selfAssessment') {
+           const selectedAssessments = llmModal.selectedIndices.map(i => llmModal.content[i]);
+           setUnitData(prev => {
+              const existing = prev[llmModal.unitNum]?.selfAssessments || [];
+              return {
+                 ...prev,
+                 [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), selfAssessments: [...existing, ...selectedAssessments] }
+              };
+           });
         } else if (llmModal.type === 'lessons') {
            const selectedLessons = llmModal.selectedIndices.map(i => llmModal.content[i]);
            setUnitData(prev => {
@@ -1140,6 +1176,9 @@
         } else if (llmModal.type === 'evidence' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
             textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
+        } else if (llmModal.type === 'selfAssessment' && Array.isArray(llmModal.content)) {
+            const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
+            textToCopy = itemsToCopy.map((sa, i) => `${i+1}. [${sa.category}] ${sa.title}\nDescription: ${sa.description}`).join('\n\n');
         } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
             textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
@@ -1924,6 +1963,9 @@
                     <button onClick={() => { setActiveAiTool('evidence'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Other Evidence (Stage 2)
                     </button>
+                    <button onClick={() => { setActiveAiTool('selfAssessment'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
+                      <SparkleIcon /> Brainstorm Self-Assessments (Stage 2)
+                    </button>
                     <button onClick={() => { setActiveAiTool('lessons'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Lesson Ideas (Stage 3)
                     </button>
@@ -1934,7 +1976,7 @@
                   <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
                     <h4 className="font-bold text-indigo-900 flex items-center text-base">
                       <SparkleIcon /> 
-                      {activeAiTool === 'pt' ? 'Drafting Performance Task' : activeAiTool === 'evidence' ? 'Brainstorming Other Evidence' : activeAiTool === 'transfer' ? 'Brainstorming Transfer Goals' : 'Brainstorming Lesson Ideas'}
+                      {activeAiTool === 'pt' ? 'Drafting Performance Task' : activeAiTool === 'evidence' ? 'Brainstorming Other Evidence' : activeAiTool === 'transfer' ? 'Brainstorming Transfer Goals' : activeAiTool === 'selfAssessment' ? 'Brainstorming Self-Assessments' : 'Brainstorming Lesson Ideas'}
                     </h4>
                     <button onClick={() => setActiveAiTool(null)} className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back
@@ -1951,6 +1993,8 @@
                         ? ' "Focus heavily on formative observations," or "Include peer-feedback conversation prompts."'
                         : activeAiTool === 'transfer'
                         ? ' "Focus specifically on environmental stewardship," or "Ensure they are relevant to a rural farming community."'
+                        : activeAiTool === 'selfAssessment'
+                        ? ' "Include strategies suitable for young readers," or "Focus on peer-to-peer reflections."'
                         : ' "Focus on outdoor, nature-based activities," or "Ensure these lessons do not require any digital technology."'}
                     </span>
                   </p>
@@ -1960,6 +2004,7 @@
                       if (activeAiTool === 'pt') handleGeneratePerformanceTask(unitItems, unitNum); 
                       else if (activeAiTool === 'evidence') handleGenerateOtherEvidence(unitItems, unitNum);
                       else if (activeAiTool === 'transfer') handleGenerateTransferGoals(unitItems, unitNum);
+                      else if (activeAiTool === 'selfAssessment') handleGenerateSelfAssessment(unitItems, unitNum);
                       else handleGenerateLessonIdeas(unitItems, unitNum); 
                     }} className="px-6 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors">Generate Content</button>
                   </div>
@@ -1989,7 +2034,7 @@
               </div>
             </div>
 
-            {((currentUnitData.transferGoals && currentUnitData.transferGoals.length > 0) || currentUnitData.performanceTask || (currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0) || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
+            {((currentUnitData.transferGoals && currentUnitData.transferGoals.length > 0) || currentUnitData.performanceTask || (currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0) || (currentUnitData.selfAssessments && currentUnitData.selfAssessments.length > 0) || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
               <div className="pt-4 space-y-6">
                 <h3 className="text-xl font-bold text-gray-800 border-b border-gray-300 pb-2">Generated Unit Content</h3>
                 
@@ -2040,6 +2085,24 @@
                   </div>
                 )}
                 
+                {currentUnitData.selfAssessments && currentUnitData.selfAssessments.length > 0 && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].selfAssessments; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Self-Assessments"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Student Self-Assessment</h3>
+                    <div className="space-y-4">
+                      {currentUnitData.selfAssessments.map((sa, i) => (
+                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                          <h4 className="font-bold text-base text-gray-900 mb-2">{sa.title}</h4>
+                          <div className="mb-2">
+                             <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
+                          </div>
+                          <div><FormattedAIText text={sa.description} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {currentUnitData.lessons && currentUnitData.lessons.length > 0 && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
                     <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].lessons; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Lessons"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -2206,6 +2269,24 @@
                         </div>
                       )}
 
+                      {llmModal.type === 'selfAssessment' && Array.isArray(llmModal.content) && (
+                        <div className="space-y-3">
+                           <p className="text-sm text-gray-600 mb-2 italic">Select the self-assessment strategies you want to keep:</p>
+                           {llmModal.content.map((sa, idx) => (
+                               <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
+                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
+                                  <div className="flex-1">
+                                     <h4 className="font-bold text-indigo-900 text-base">{sa.title}</h4>
+                                     <div className="mb-2 mt-1">
+                                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
+                                     </div>
+                                     <div><FormattedAIText text={sa.description} /></div>
+                                  </div>
+                               </label>
+                           ))}
+                        </div>
+                      )}
+
                       {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
                         <div className="space-y-3">
                            <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
@@ -2230,7 +2311,7 @@
                   <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors">Close</button>
                   {!llmModal.isLoading && !llmModal.error && (
                     <>
-                      <button onClick={handleAddToTemplate} disabled={(llmModal.type === 'lessons' || llmModal.type === 'evidence' || llmModal.type === 'transfer') && llmModal.selectedIndices.length === 0} className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${(llmModal.type === 'lessons' || llmModal.type === 'evidence' || llmModal.type === 'transfer') && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}>Add to Lesson Template</button>
+                      <button onClick={handleAddToTemplate} disabled={(llmModal.type === 'lessons' || llmModal.type === 'evidence' || llmModal.type === 'transfer' || llmModal.type === 'selfAssessment') && llmModal.selectedIndices.length === 0} className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${(llmModal.type === 'lessons' || llmModal.type === 'evidence' || llmModal.type === 'transfer' || llmModal.type === 'selfAssessment') && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}>Add to Lesson Template</button>
                       <button onClick={copyLlmContent} className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium shadow-sm hover:bg-indigo-700 transition-colors">Copy to Clipboard</button>
                     </>
                   )}

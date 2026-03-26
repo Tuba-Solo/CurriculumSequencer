@@ -126,6 +126,12 @@
                  if ('kusps' in item) item.kusps = normalize(item.kusps);
                  if ('competencies' in item) item.competencies = normalize(item.competencies);
                  if ('successCriteria' in item) item.successCriteria = normalize(item.successCriteria);
+                 
+                 // New keys for Other Evidence
+                 if ('evaluativeCriteria' in item) item.evaluativeCriteria = normalize(item.evaluativeCriteria);
+                 if ('evidence' in item) item.evidence = normalize(item.evidence);
+                 if ('method' in item) item.method = normalize(item.method);
+                 if ('assessmentType' in item) item.assessmentType = normalize(item.assessmentType);
              });
           }
 
@@ -262,6 +268,7 @@
       };
 
       const pt = unitDataForExport?.performanceTask;
+      const evList = unitDataForExport?.otherEvidence || [];
       const lessons = unitDataForExport?.lessons || [];
 
       const renderList = (list) => {
@@ -373,10 +380,23 @@
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br><br><br></td>
-              <td style="width: 33.33%;"><strong>Evidence</strong><br><br><br><br></td>
-              <td style="width: 33.33%;"><strong>Conversation, Observation, or Product?</strong><br><br><br><br></td>
+              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Evaluative Criteria</strong></td>
+              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Evidence</strong></td>
+              <td style="width: 33.33%; background-color: #f8fafc;"><strong>Conversation, Observation, or Product?</strong></td>
             </tr>
+            ${evList.length > 0 ? evList.map(e => `
+              <tr>
+                <td style="width: 33.33%;">${e.evaluativeCriteria}</td>
+                <td style="width: 33.33%;"><b>[${e.assessmentType}]</b><br>${e.evidence}</td>
+                <td style="width: 33.33%;">${e.method}</td>
+              </tr>
+            `).join('') : `
+              <tr>
+                <td style="width: 33.33%;"><br><br><br><br></td>
+                <td style="width: 33.33%;"><br><br><br><br></td>
+                <td style="width: 33.33%;"><br><br><br><br></td>
+              </tr>
+            `}
             <tr>
               <td colspan="3"><h2>Student Self-Assessment</h2><p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p></td>
             </tr>
@@ -878,6 +898,28 @@
         }
       };
 
+      // NEW AI TOOL: Brainstorm Other Evidence
+      const handleGenerateOtherEvidence = async (unitItems, unitNum) => {
+        if (!apiKey) return;
+        setActiveAiTool(null);
+        setLlmModal({ isOpen: true, type: 'evidence', unitNum, selectedIndices: [], title: 'Brainstorming Other Evidence...', content: null, isLoading: true, error: '' });
+        
+        const context = buildPromptContext(unitItems);
+        let prompt = `${context}\n\nPlease generate a collection of ideas for 'Other Evidence' that can be collected by the teacher to help formulate their professional judgement and provide rich feedback. Align with the Understanding by Design (UbD) framework. Keep in mind that knowledge builds to understanding, and understanding enables skills and procedures. Balance the proposed assessments by providing a selection of observations, conversations, and products. Indicate if each assessment is formative or summative (Summative must be assessed against Learning Outcomes).`;
+        
+        if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
+        
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "evaluativeCriteria": What specific criteria or LOs are being evaluated?\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
+
+        try {
+          const response = await generateGeminiContent(prompt, apiKey, true);
+          const parsedData = parseLLMResponse(response);
+          setLlmModal(prev => ({ ...prev, title: 'Other Evidence Ideas', content: parsedData, isLoading: false }));
+        } catch (err) {
+          setLlmModal(prev => ({ ...prev, title: 'Generation Failed', error: err.message, isLoading: false }));
+        }
+      };
+
       const handleGenerateLessonIdeas = async (unitItems, unitNum) => {
         if (!apiKey) return;
         setActiveAiTool(null);
@@ -903,7 +945,7 @@
         }
       };
 
-      const handleSelectLesson = (idx) => {
+      const handleSelectCheckboxItem = (idx) => {
         setLlmModal(prev => {
           const isSelected = prev.selectedIndices.includes(idx);
           const newIndices = isSelected ? prev.selectedIndices.filter(i => i !== idx) : [...prev.selectedIndices, idx];
@@ -917,6 +959,15 @@
               ...prev,
               [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), performanceTask: llmModal.content }
            }));
+        } else if (llmModal.type === 'evidence') {
+           const selectedEvidence = llmModal.selectedIndices.map(i => llmModal.content[i]);
+           setUnitData(prev => {
+              const existing = prev[llmModal.unitNum]?.otherEvidence || [];
+              return {
+                 ...prev,
+                 [llmModal.unitNum]: { ...(prev[llmModal.unitNum] || {}), otherEvidence: [...existing, ...selectedEvidence] }
+              };
+           });
         } else if (llmModal.type === 'lessons') {
            const selectedLessons = llmModal.selectedIndices.map(i => llmModal.content[i]);
            setUnitData(prev => {
@@ -935,6 +986,9 @@
         let textToCopy = '';
         if (llmModal.type === 'pt' && llmModal.content) {
             textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nEVALUATIVE CRITERIA:\n${llmModal.content.evaluativeCriteria}`;
+        } else if (llmModal.type === 'evidence' && Array.isArray(llmModal.content)) {
+            const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
+            textToCopy = itemsToCopy.map((e, i) => `${i+1}. [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
         } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
             textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
@@ -1652,6 +1706,9 @@
                     <button onClick={() => { setActiveAiTool('pt'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Draft Performance Task (Stage 2)
                     </button>
+                    <button onClick={() => { setActiveAiTool('evidence'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
+                      <SparkleIcon /> Brainstorm Other Evidence (Stage 2)
+                    </button>
                     <button onClick={() => { setActiveAiTool('lessons'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Lesson Ideas (Stage 3)
                     </button>
@@ -1660,7 +1717,10 @@
               ) : (
                 <div className="bg-white p-5 rounded-md border border-indigo-100 shadow-sm mt-3 transition-all animate-fade-in">
                   <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
-                    <h4 className="font-bold text-indigo-900 flex items-center text-base"><SparkleIcon /> {activeAiTool === 'pt' ? 'Drafting Performance Task' : 'Brainstorming Lesson Ideas'}</h4>
+                    <h4 className="font-bold text-indigo-900 flex items-center text-base">
+                      <SparkleIcon /> 
+                      {activeAiTool === 'pt' ? 'Drafting Performance Task' : activeAiTool === 'evidence' ? 'Brainstorming Other Evidence' : 'Brainstorming Lesson Ideas'}
+                    </h4>
                     <button onClick={() => setActiveAiTool(null)} className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back
                     </button>
@@ -1669,11 +1729,21 @@
                   <p className="text-sm text-gray-600 mb-3 leading-relaxed">
                     Guide the AI by providing specific themes, constraints, resources, or student needs. <br/>
                     <strong className="text-gray-800">Example:</strong> 
-                    <span className="italic">{activeAiTool === 'pt' ? ' "Make the scenario about surviving a zombie apocalypse," or "Ensure the final product is a recorded podcast script."' : ' "Focus on outdoor, nature-based activities," or "Ensure these lessons do not require any digital technology."'}</span>
+                    <span className="italic">
+                      {activeAiTool === 'pt' 
+                        ? ' "Make the scenario about surviving a zombie apocalypse," or "Ensure the final product is a recorded podcast script."' 
+                        : activeAiTool === 'evidence'
+                        ? ' "Focus heavily on formative observations," or "Include peer-feedback conversation prompts."'
+                        : ' "Focus on outdoor, nature-based activities," or "Ensure these lessons do not require any digital technology."'}
+                    </span>
                   </p>
                   <textarea className="w-full border border-gray-300 rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4 shadow-sm" rows="3" placeholder="Enter your custom instructions here (optional)..." value={customInstruction} onChange={(e) => setCustomInstruction(e.target.value)}></textarea>
                   <div className="flex justify-end">
-                    <button onClick={() => { if (activeAiTool === 'pt') handleGeneratePerformanceTask(unitItems, unitNum); else handleGenerateLessonIdeas(unitItems, unitNum); }} className="px-6 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors">Generate Content</button>
+                    <button onClick={() => { 
+                      if (activeAiTool === 'pt') handleGeneratePerformanceTask(unitItems, unitNum); 
+                      else if (activeAiTool === 'evidence') handleGenerateOtherEvidence(unitItems, unitNum);
+                      else handleGenerateLessonIdeas(unitItems, unitNum); 
+                    }} className="px-6 py-2.5 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-md hover:bg-indigo-700 transition-colors">Generate Content</button>
                   </div>
                 </div>
               )}
@@ -1692,9 +1762,10 @@
               </div>
             </div>
 
-            {(currentUnitData.performanceTask || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
+            {(currentUnitData.performanceTask || (currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0) || (currentUnitData.lessons && currentUnitData.lessons.length > 0)) && (
               <div className="pt-4 space-y-6">
                 <h3 className="text-xl font-bold text-gray-800 border-b border-gray-300 pb-2">Generated Unit Content</h3>
+                
                 {currentUnitData.performanceTask && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
                     <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].performanceTask; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Remove from Unit"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -1707,6 +1778,26 @@
                     <p className="text-sm whitespace-pre-wrap">{currentUnitData.performanceTask.evaluativeCriteria}</p>
                   </div>
                 )}
+                
+                {currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0 && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].otherEvidence; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Evidence"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Other Evidence</h3>
+                    <div className="space-y-4">
+                      {currentUnitData.otherEvidence.map((ev, i) => (
+                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                          <div className="flex items-center gap-2 mb-2">
+                             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-200">{ev.assessmentType}</span>
+                             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
+                          </div>
+                          <p className="text-sm text-gray-800 mb-2"><b>Evidence:</b> {ev.evidence}</p>
+                          <p className="text-xs text-gray-600"><b>Evaluative Criteria:</b> {ev.evaluativeCriteria}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {currentUnitData.lessons && currentUnitData.lessons.length > 0 && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
                     <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].lessons; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Lessons"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
@@ -1828,12 +1919,32 @@
                            <h4 className="font-bold text-indigo-900 mb-1">Evaluative Criteria</h4><p className="text-sm text-gray-800 whitespace-pre-wrap">{llmModal.content.evaluativeCriteria}</p>
                         </div>
                       )}
+                      
+                      {llmModal.type === 'evidence' && Array.isArray(llmModal.content) && (
+                        <div className="space-y-3">
+                           <p className="text-sm text-gray-600 mb-2 italic">Select the evidence ideas you want to keep:</p>
+                           {llmModal.content.map((ev, idx) => (
+                               <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
+                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
+                                  <div className="flex-1">
+                                     <div className="flex items-center gap-2 mb-1">
+                                        <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.assessmentType}</span>
+                                        <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.method}</span>
+                                     </div>
+                                     <p className="text-sm text-gray-800 mb-2"><b>Evidence:</b> {ev.evidence}</p>
+                                     <p className="text-xs text-gray-600"><b>Evaluative Criteria:</b> {ev.evaluativeCriteria}</p>
+                                  </div>
+                               </label>
+                           ))}
+                        </div>
+                      )}
+
                       {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
                         <div className="space-y-3">
                            <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
                            {llmModal.content.map((lesson, idx) => (
                                <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
-                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectLesson(idx)} />
+                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
                                   <div className="flex-1">
                                      <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
                                      <p className="text-sm text-gray-800 mb-2">{lesson.description}</p>
@@ -1852,7 +1963,7 @@
                   <button onClick={() => setLlmModal({ ...llmModal, isOpen: false })} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md font-medium hover:bg-gray-200 transition-colors">Close</button>
                   {!llmModal.isLoading && !llmModal.error && (
                     <>
-                      <button onClick={handleAddToTemplate} disabled={llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0} className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${llmModal.type === 'lessons' && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}>Add to Lesson Template</button>
+                      <button onClick={handleAddToTemplate} disabled={(llmModal.type === 'lessons' || llmModal.type === 'evidence') && llmModal.selectedIndices.length === 0} className={`px-4 py-2 rounded-md font-medium shadow-sm transition-colors ${(llmModal.type === 'lessons' || llmModal.type === 'evidence') && llmModal.selectedIndices.length === 0 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-indigo-100 text-indigo-700 border border-indigo-200 hover:bg-indigo-200'}`}>Add to Lesson Template</button>
                       <button onClick={copyLlmContent} className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium shadow-sm hover:bg-indigo-700 transition-colors">Copy to Clipboard</button>
                     </>
                   )}

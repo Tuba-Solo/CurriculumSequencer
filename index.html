@@ -344,6 +344,7 @@
             <tr><th>Subject</th><td><strong>${config && config.subject ? config.subject : ''}</strong></td></tr>
             <tr><th>Time Frame</th><td><strong>${unitDataForExport?.timeframe || ''}</strong></td></tr>
             <tr><th>Developed By</th><td><strong>${unitDataForExport?.developedBy || ''}</strong></td></tr>
+            <tr><th>Unit Overview</th><td>${unitDataForExport?.unitOverview ? unitDataForExport.unitOverview.replace(/\n/g, '<br>') : ''}</td></tr>
           </table>
           <table>
             <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
@@ -1752,6 +1753,19 @@
                     className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-900 mb-2">Unit overview</label>
+                <textarea 
+                  rows="3"
+                  value={currentUnitData.unitOverview || ''} 
+                  onChange={(e) => setUnitData(prev => ({
+                    ...prev,
+                    [unitNum]: { ...(prev[unitNum] || {}), unitOverview: e.target.value }
+                  }))}
+                  placeholder="Provide a brief overview or summary of the unit..."
+                  className="w-full border border-gray-300 rounded-md p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-eips-green focus:border-eips-green shadow-sm"
+                ></textarea>
               </div>
             </div>
 

@@ -299,6 +299,19 @@
         }).join('')}</ul>`;
       };
 
+      // Robust text formatter for Word Document (handles line breaks and bullet points)
+      const formatTextForWord = (text) => {
+        if (!text) return '';
+        const lines = text.split(/(?:\r\n|\r|\n)/);
+        return lines.map(line => {
+           const trimmed = line.trimStart();
+           if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+              return `&bull;&nbsp;&nbsp;${trimmed.substring(2)}`;
+           }
+           return line;
+        }).join('<br>');
+      };
+
       const html = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
@@ -344,7 +357,7 @@
             <tr><th>Subject</th><td><strong>${config && config.subject ? config.subject : ''}</strong></td></tr>
             <tr><th>Time Frame</th><td><strong>${unitDataForExport?.timeframe || ''}</strong></td></tr>
             <tr><th>Developed By</th><td><strong>${unitDataForExport?.developedBy || ''}</strong></td></tr>
-            <tr><th>Unit Overview</th><td>${unitDataForExport?.unitOverview ? unitDataForExport.unitOverview.replace(/\n/g, '<br>') : ''}</td></tr>
+            <tr><th>Unit Overview</th><td>${unitDataForExport?.unitOverview ? formatTextForWord(unitDataForExport.unitOverview) : ''}</td></tr>
           </table>
           <table>
             <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
@@ -367,7 +380,7 @@
               <td colspan="2">
                 <h2>TRANSFER GOALS</h2>
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">A transfer goal defines the long-term aim of a curriculum, specifying what students should be able to independently do with their acquired knowledge and skills in new, real-world situations long after the specific instruction has ended.</p>
-                ${tgList.length > 0 ? `<ul>${tgList.map(g => `<li style="margin-bottom: 6px;">${g.goal}</li>`).join('')}</ul>` : '<p><br><br><br></p>'}
+                ${tgList.length > 0 ? `<ul>${tgList.map(g => `<li style="margin-bottom: 6px;">${formatTextForWord(g.goal)}</li>`).join('')}</ul>` : '<p><br><br><br></p>'}
               </td>
             </tr>
           </table>
@@ -377,12 +390,12 @@
               <td colspan="3">
                 <h2>Performance Task</h2>
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
-                ${pt ? `<p style="margin-top:10px;">${pt.scenario.replace(/\n/g, '<br>')}</p>` : '<br><br><br>'}
+                ${pt ? `<p style="margin-top:10px;">${formatTextForWord(pt.scenario)}</p>` : '<br><br><br>'}
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br>${pt ? pt.evaluativeCriteria.replace(/\n/g, '<br>') : '<br><br><br><br>'}</td>
-              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br>${pt ? pt.elements.replace(/\n/g, '<br>') : '<br><br><br><br>'}</td>
+              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br>${pt ? formatTextForWord(pt.evaluativeCriteria) : '<br><br><br><br>'}</td>
+              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<br><br><br><br>'}</td>
             </tr>
             <tr>
               <td colspan="3">
@@ -397,8 +410,8 @@
             </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
-                <td style="width: 25%;">${e.evaluativeCriteria}</td>
-                <td style="width: 60%;"><b>[${e.assessmentType}]</b><br>${e.evidence}</td>
+                <td style="width: 25%;"><strong>${formatTextForWord(e.title)}</strong><br><br>${formatTextForWord(e.evaluativeCriteria)}</td>
+                <td style="width: 60%;"><b>[${e.assessmentType}]</b><br>${formatTextForWord(e.evidence)}</td>
                 <td style="width: 15%; text-align: center;">${e.method}</td>
               </tr>
             `).join('') : `
@@ -445,12 +458,12 @@
             ${lessons.length > 0 ? lessons.map((l, i) => `
               <tr>
                 <td style="text-align: center;">${i+1}</td>
-                <td><strong>${l.title}</strong></td>
-                <td>${l.description.replace(/\n/g, '<br>')}</td>
-                <td>${l.kusps}</td>
-                <td>${l.competencies}</td>
+                <td><strong>${formatTextForWord(l.title)}</strong></td>
+                <td>${formatTextForWord(l.description)}</td>
+                <td>${formatTextForWord(l.kusps)}</td>
+                <td>${formatTextForWord(l.competencies)}</td>
                 <td></td>
-                <td>${l.successCriteria}</td>
+                <td>${formatTextForWord(l.successCriteria)}</td>
               </tr>
             `).join('') : ''}
             ${Array(Math.max(0, 10 - lessons.length)).fill('<tr><td><br><br></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')}
@@ -936,11 +949,11 @@
         setLlmModal({ isOpen: true, type: 'evidence', unitNum, selectedIndices: [], title: 'Brainstorming Other Evidence...', content: null, isLoading: true, error: '' });
         
         const context = buildPromptContext(unitItems);
-        let prompt = `${context}\n\nPlease generate a collection of ideas for 'Other Evidence' that can be collected by the teacher to help formulate their professional judgement and provide rich feedback. Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes. Align with the Understanding by Design (UbD) framework. Keep in mind that knowledge builds to understanding, and understanding enables skills and procedures. Balance the proposed assessments by providing a selection of observations, conversations, and products. Indicate if each assessment is formative or summative (Summative must be assessed against Learning Outcomes).`;
+        let prompt = `${context}\n\nPlease generate a collection of ideas for 'Other Evidence' that can be collected by the teacher to help formulate their professional judgement and provide rich feedback. Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes. Align with the Understanding by Design (UbD) framework. Keep in mind that knowledge builds to understanding, and understanding enables skills and procedures. Balance the proposed assessments by providing a selection of observations, conversations, and products. Indicate if each assessment is formative or summative (Summative must be assessed against Learning Outcomes). Give each task a descriptive name.`;
         
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
         
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "evaluativeCriteria": What specific criteria or LOs are being evaluated?\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evaluativeCriteria": What specific criteria or LOs are being evaluated?\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1031,7 +1044,7 @@
             textToCopy = `ALIGNMENT CHECK:\n${llmModal.content.alignmentCheck}\n\nTRANSFER GOALS:\n` + itemsToCopy.map((g, i) => `${i+1}. ${g.goal}\nRationale: ${g.rationale}`).join('\n\n');
         } else if (llmModal.type === 'evidence' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((e, i) => `${i+1}. [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
+            textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
         } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
             textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
@@ -2081,7 +2094,8 @@
                                <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
                                   <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
                                   <div className="flex-1">
-                                     <div className="flex items-center gap-2 mb-1">
+                                     <h4 className="font-bold text-indigo-900 text-base">{ev.title}</h4>
+                                     <div className="flex items-center gap-2 mb-2 mt-1">
                                         <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.assessmentType}</span>
                                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.method}</span>
                                      </div>
@@ -2092,24 +2106,25 @@
                            ))}
                         </div>
                       )}
-
-                      {llmModal.type === 'lessons' && Array.isArray(llmModal.content) && (
-                        <div className="space-y-3">
-                           <p className="text-sm text-gray-600 mb-2 italic">Select the activities you want to keep:</p>
-                           {llmModal.content.map((lesson, idx) => (
-                               <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
-                                  <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />
-                                  <div className="flex-1">
-                                     <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
-                                     <p className="text-sm text-gray-800 mb-2">{lesson.description}</p>
-                                     <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps}</p>
-                                     <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {lesson.competencies}</p>
-                                     <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
-                                  </div>
-                               </label>
-                           ))}
+                {currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0 && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].otherEvidence; return upd; })} className="absolute top-4 right-4 text-gray-400 hover:text-red-500" title="Clear All Evidence"><svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 flex items-center"><SparkleIcon /> Other Evidence</h3>
+                    <div className="space-y-4">
+                      {currentUnitData.otherEvidence.map((ev, i) => (
+                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+                          <h4 className="font-bold text-base text-gray-900 mb-2">{ev.title}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-200">{ev.assessmentType}</span>
+                             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
+                          </div>
+                          <p className="text-sm text-gray-800 mb-2"><b>Evidence:</b> {ev.evidence}</p>
+                          <p className="text-xs text-gray-600"><b>Evaluative Criteria:</b> {ev.evaluativeCriteria}</p>
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  </div>
+                )}
                     </>
                   )}
                 </div>

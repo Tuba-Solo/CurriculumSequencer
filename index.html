@@ -149,7 +149,18 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               if ('scenario' in parsed) parsed.scenario = normalize(parsed.scenario);
               if ('elements' in parsed) parsed.elements = normalize(parsed.elements);
-              if ('evaluativeCriteria' in parsed) parsed.evaluativeCriteria = normalize(parsed.evaluativeCriteria);
+              
+              if ('evaluativeCriteria' in parsed) {
+                  if (Array.isArray(parsed.evaluativeCriteria)) {
+                      parsed.evaluativeCriteria.forEach(c => {
+                          if ('criterion' in c) c.criterion = normalize(c.criterion);
+                          if ('kusps' in c) c.kusps = normalize(c.kusps);
+                          if ('teacherNotes' in c) c.teacherNotes = normalize(c.teacherNotes);
+                      });
+                  } else {
+                      parsed.evaluativeCriteria = normalize(parsed.evaluativeCriteria);
+                  }
+              }
               
               // New keys for Transfer Goals
               if ('alignmentCheck' in parsed) parsed.alignmentCheck = normalize(parsed.alignmentCheck);
@@ -583,8 +594,32 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </td>
             </tr>
             <tr>
-              <td style="width: 33.33%;"><strong>Evaluative Criteria</strong><br><br>${pt ? formatTextForWord(pt.evaluativeCriteria) : '<br><br><br><br>'}</td>
-              <td colspan="2" style="width: 66.66%;"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<br><br><br><br>'}</td>
+              <td colspan="3"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<br><br><br><br>'}</td>
+            </tr>
+            <tr>
+              <td colspan="3">
+                <strong>Evaluative Criteria Rubric</strong><br><br>
+                ${pt && Array.isArray(pt.evaluativeCriteria) ? `
+                  <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+                    <thead>
+                      <tr>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 25%;">Criterion</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 35%;">KUSPs Addressed</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 40%;">Teacher Notes (LO Alignment)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${pt.evaluativeCriteria.map(c => `
+                        <tr>
+                          <td style="padding: 8px;">${formatTextForWord(c.criterion)}</td>
+                          <td style="padding: 8px;">${formatTextForWord(c.kusps)}</td>
+                          <td style="padding: 8px;">${formatTextForWord(c.teacherNotes)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : (pt ? formatTextForWord(pt.evaluativeCriteria) : '<br><br><br><br>')}
+              </td>
             </tr>
             <tr>
               <td colspan="3">
@@ -1121,7 +1156,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         const context = buildPromptContext(unitItems);
         let prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.`;
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
-        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three string keys:\n1. "scenario": The learning activity in story form.\n2. "elements": The specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": By what criteria the performance will be judged.`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The name or description of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1258,7 +1293,13 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       const copyLlmContent = () => {
         let textToCopy = '';
         if (llmModal.type === 'pt' && llmModal.content) {
-            textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nEVALUATIVE CRITERIA:\n${llmModal.content.evaluativeCriteria}`;
+            let criteriaText = '';
+            if (Array.isArray(llmModal.content.evaluativeCriteria)) {
+                criteriaText = llmModal.content.evaluativeCriteria.map(c => `- Criterion: ${c.criterion}\n  KUSPs: ${c.kusps}\n  Notes: ${c.teacherNotes}`).join('\n\n');
+            } else {
+                criteriaText = llmModal.content.evaluativeCriteria;
+            }
+            textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nEVALUATIVE CRITERIA:\n${criteriaText}`;
         } else if (llmModal.type === 'transfer' && llmModal.content?.goals) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content.goals[i]) : llmModal.content.goals;
             textToCopy = `ALIGNMENT CHECK:\n${llmModal.content.alignmentCheck}\n\nTRANSFER GOALS:\n` + itemsToCopy.map((g, i) => `${i+1}. ${g.goal}\nRationale: ${g.rationale}`).join('\n\n');
@@ -2186,7 +2227,30 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                     <h4 className="font-bold text-sm text-gray-700">Elements</h4>
                     <FormattedAIText text={currentUnitData.performanceTask.elements} className="mb-4" />
                     <h4 className="font-bold text-sm text-gray-700">Evaluative Criteria</h4>
-                    <FormattedAIText text={currentUnitData.performanceTask.evaluativeCriteria} />
+                    {Array.isArray(currentUnitData.performanceTask.evaluativeCriteria) ? (
+                      <div className="overflow-x-auto mt-2 border border-gray-200 rounded-md">
+                        <table className="min-w-full text-sm text-left">
+                          <thead className="bg-gray-100 text-gray-700">
+                            <tr>
+                              <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion</th>
+                              <th className="px-4 py-2 border-b border-gray-200 w-1/3">KUSPs Addressed</th>
+                              <th className="px-4 py-2 border-b border-gray-200 w-5/12">Teacher Notes (LO Alignment)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {currentUnitData.performanceTask.evaluativeCriteria.map((c, idx) => (
+                              <tr key={idx} className="bg-white">
+                                <td className="px-4 py-3 align-top font-medium text-gray-900"><FormattedAIText text={c.criterion} /></td>
+                                <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.kusps} /></td>
+                                <td className="px-4 py-3 align-top text-gray-600"><FormattedAIText text={c.teacherNotes} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <FormattedAIText text={currentUnitData.performanceTask.evaluativeCriteria} />
+                    )}
                   </div>
                 )}
                 
@@ -2367,7 +2431,30 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Elements</h4>
                            <FormattedAIText text={llmModal.content.elements} />
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Evaluative Criteria</h4>
-                           <FormattedAIText text={llmModal.content.evaluativeCriteria} />
+                           {Array.isArray(llmModal.content.evaluativeCriteria) ? (
+                              <div className="overflow-x-auto mt-2 mb-4 border border-gray-200 rounded-md">
+                                <table className="min-w-full text-sm text-left">
+                                  <thead className="bg-gray-100 text-gray-700">
+                                    <tr>
+                                      <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion</th>
+                                      <th className="px-4 py-2 border-b border-gray-200 w-1/3">KUSPs Addressed</th>
+                                      <th className="px-4 py-2 border-b border-gray-200 w-5/12">Teacher Notes (LO Alignment)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-gray-200">
+                                    {llmModal.content.evaluativeCriteria.map((c, i) => (
+                                      <tr key={i} className="bg-white">
+                                        <td className="px-4 py-3 align-top font-medium text-gray-900"><FormattedAIText text={c.criterion} /></td>
+                                        <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.kusps} /></td>
+                                        <td className="px-4 py-3 align-top text-gray-600"><FormattedAIText text={c.teacherNotes} /></td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                           ) : (
+                              <FormattedAIText text={llmModal.content.evaluativeCriteria} />
+                           )}
                         </div>
                       )}
                       

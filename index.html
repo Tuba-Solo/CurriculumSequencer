@@ -590,11 +590,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <td colspan="3">
                 <h2>Performance Task</h2>
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
-                ${pt ? formatTextForWord(pt.scenario) : '<br><br><br>'}
+                ${pt ? formatTextForWord(pt.scenario) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
               </td>
             </tr>
             <tr>
-              <td colspan="3"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<br><br><br><br>'}</td>
+              <td colspan="3"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
             </tr>
             <tr>
               <td colspan="3">
@@ -618,7 +618,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       `).join('')}
                     </tbody>
                   </table>
-                ` : (pt ? formatTextForWord(pt.evaluativeCriteria) : '<br><br><br><br>')}
+                ` : (pt ? formatTextForWord(pt.evaluativeCriteria) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>')}
               </td>
             </tr>
             <tr>
@@ -635,21 +635,21 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             ${evList.length > 0 ? evList.map(e => `
               <tr>
                 <td style="width: 25%;"><strong>${e.title}</strong><br><br>${formatTextForWord(e.evaluativeCriteria)}</td>
-                <td style="width: 60%;"><b>[${e.assessmentType}]</b><br>${formatTextForWord(e.evidence)}</td>
+                <td style="width: 60%;"><i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}</td>
                 <td style="width: 15%; text-align: center;">${e.method}</td>
               </tr>
             `).join('') : `
               <tr>
-                <td style="width: 25%;"><br><br><br><br></td>
-                <td style="width: 60%;"><br><br><br><br></td>
-                <td style="width: 15%;"><br><br><br><br></td>
+                <td style="width: 25%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                <td style="width: 60%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                <td style="width: 15%; text-align: center;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
               </tr>
             `}
             <tr>
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
                  <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
-                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong>[${sa.category}] ${formatTextForWord(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<br><br><br><br><br>'}
+                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><i>${sa.category}</i> - <strong>${formatTextForWord(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
               </td>
             </tr>
           </table>
@@ -661,7 +661,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 <ul><li>achieve the desired results identified in Stage 1?</li><li>equip students to complete the assessment tasks identified in Stage 2?</li></ul>
               </td>
             </tr>
-            <tr><td colspan="3"><br><br><br><br><br><br></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr>
               <td colspan="3" class="instruction-text">
                 <p style="margin-bottom: 8px;">Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
@@ -669,9 +669,9 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 <p>What individual needs do you anticipate will need to be addressed?</p>
               </td>
             </tr>
-            <tr><td colspan="3"><br><br><br><br><br><br></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr><td colspan="3" class="instruction-text"><p>How will you engage students at the beginning of the unit?</p></td></tr>
-            <tr><td colspan="3"><br><br><br><br><br><br></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr><td colspan="3" class="instruction-text"><p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p></td></tr>
             <tr><td colspan="3" style="height: 150px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr>
@@ -685,30 +685,38 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             ${lessons.length > 0 ? lessons.map((l, i) => `
               <tr>
                 <td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle;">${i+1}</td>
-                <td style="vertical-align: top;"><strong>${formatTextForWord(l.title)}</strong></td>
+                <td style="vertical-align: top;">
+                  <strong>${formatTextForWord(l.title)}</strong>
+                  <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                    <strong>KUSPs:</strong><br>${formatTextForWord(l.kusps)}
+                  </div>
+                </td>
                 <td style="vertical-align: top;">${formatTextForWord(l.description)}</td>
               </tr>
               <tr>
                 <td colspan="2" style="background-color: #f8fafc; padding: 12px; vertical-align: top;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Success Criteria¹:</strong> ${formatTextForWord(l.successCriteria)}</p>
-                  <p style="margin-top: 0; margin-bottom: 6px;"><strong>KUSPs:</strong> ${formatTextForWord(l.kusps)}</p>
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Cross-curricular Competencies:</strong> ${formatTextForWord(l.competencies)}</p>
-                  <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong> </p>
+                  <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong> <i style="color: #94a3b8;">[Enter your response here...]</i></p>
                 </td>
               </tr>
             `).join('') : ''}
             ${Array(Math.max(0, 10 - lessons.length)).fill(`
               <tr>
                 <td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle;"><br><br></td>
-                <td style="vertical-align: top;"><br><br></td>
-                <td style="vertical-align: top;"><br><br></td>
+                <td style="vertical-align: top;">
+                  <br><br>
+                  <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                    <strong>KUSPs:</strong><br><br>
+                  </div>
+                </td>
+                <td style="vertical-align: top;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td>
               </tr>
               <tr>
                 <td colspan="2" style="background-color: #f8fafc; padding: 12px; vertical-align: top;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Success Criteria¹:</strong> </p>
-                  <p style="margin-top: 0; margin-bottom: 6px;"><strong>KUSPs:</strong> </p>
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Cross-curricular Competencies:</strong> </p>
-                  <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong> </p>
+                  <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong> <i style="color: #94a3b8;">[Enter your response here...]</i></p>
                 </td>
               </tr>
             `).join('')}

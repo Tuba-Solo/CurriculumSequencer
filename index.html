@@ -71,7 +71,12 @@ FORMATTING REQUIREMENTS:
 - At the end of every generated lesson, assessment, or performance task, include a brief "UDL Alignment Breakdown" section. In this section, clearly list 1-2 bullet points explaining how the design specifically addresses Engagement, Representation, and Action/Expression.
 - Tone: Professional, encouraging, adaptable, and deeply respectful of K-12 students' diverse cognitive, physical, and emotional needs.
 
-Your goal is to eliminate barriers to learning by designing proactively for the margins, ensuring every student has an equal opportunity to succeed based on the provided curricular goals.`
+Your goal is to eliminate barriers to learning by designing proactively for the margins, ensuring every student has an equal opportunity to succeed based on the provided curricular goals.
+
+CRITICAL ALIGNMENT REQUIREMENT:
+Yes, the evaluative criteria of a performance task must explicitly align with curricular standards and learning goals. A foundational concept in the Understanding by Design (UbD) framework is curriculum alignment, meaning all three stages of the backward design process must be tightly aligned with one another as well as with established standards.
+In Stage 1 of the UbD framework, educators establish desired results by reviewing and "unpacking" content standards to clarify learning priorities. In Stage 2, educators determine what will serve as acceptable evidence of student learning, which often involves authentic performance tasks. The evaluative criteria used to judge these performance tasks—frequently defined using rubrics or performance standards—must be directly aligned to the desired results identified in Stage 1.
+Because the desired results from Stage 1 are derived from curricular standards, the criteria used in Stage 2 to evaluate performance tasks inherently must measure whether those specific standards and goals have been met. Setting clear evaluative criteria ensures that assessments require students to actually demonstrate their understanding of the targeted knowledge and skills. Failing to align these criteria with the targeted goals and standards compromises the validity and coherence of the unit design.`
           }] 
         }
       };
@@ -1954,19 +1959,17 @@ Your goal is to eliminate barriers to learning by designing proactively for the 
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <button onClick={() => handleTabClick('checklist')} className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-all">
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                <button onClick={() => handleTabClick('checklist')} className="flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-md text-sm font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-colors">
+                  <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                   Back to Checklist
                 </button>
-                <button onClick={() => setShowResetConfirm(true)} className="flex items-center px-4 py-3 bg-white border border-red-300 text-red-600 rounded-lg font-medium shadow-sm hover:bg-red-50 transition-all">
-                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                <button onClick={() => setShowResetConfirm(true)} className="px-4 py-2 bg-white text-eips-orange border border-eips-orange/50 rounded-md text-sm font-medium hover:bg-orange-50 transition-colors shadow-sm">
                   Reset
                 </button>
-                <button onClick={handleSaveProgress} className="flex items-center px-4 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium shadow-sm hover:text-eips-green hover:border-eips-green/50 hover:bg-gray-50 transition-all">
-                  <SaveIcon />
-                  {saveStatus || 'Save Progress'}
+                <button onClick={handleSaveProgress} className="px-4 py-2 bg-eips-green text-white border border-transparent rounded-md text-sm font-medium hover:bg-opacity-90 transition-colors shadow-sm">
+                  {saveStatus || 'Save'}
                 </button>
-                <button onClick={() => exportToWord(unitName, unitItems, loadedConfig, currentUnitData)} disabled={unitItems.length === 0} className={`flex items-center px-6 py-3 rounded-lg font-medium shadow-sm transition-all ${unitItems.length > 0 ? 'bg-eips-green hover:bg-opacity-90 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                <button onClick={() => exportToWord(unitName, unitItems, loadedConfig, currentUnitData)} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-eips-green hover:bg-opacity-90 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
                   <DownloadIcon /> Generate Unit Plan Template
                 </button>
               </div>

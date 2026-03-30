@@ -149,6 +149,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
               if ('scenario' in parsed) parsed.scenario = normalize(parsed.scenario);
               if ('elements' in parsed) parsed.elements = normalize(parsed.elements);
+              if ('udl' in parsed) parsed.udl = normalize(parsed.udl);
               
               if ('evaluativeCriteria' in parsed) {
                   if (Array.isArray(parsed.evaluativeCriteria)) {
@@ -177,6 +178,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
              parsed.forEach(item => {
                  if ('title' in item) item.title = normalize(item.title);
                  if ('description' in item) item.description = normalize(item.description);
+                 if ('udl' in item) item.udl = normalize(item.udl);
                  if ('kusps' in item) item.kusps = normalize(item.kusps);
                  if ('competencies' in item) item.competencies = normalize(item.competencies);
                  if ('successCriteria' in item) item.successCriteria = normalize(item.successCriteria);
@@ -610,6 +612,9 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <td colspan="3"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
             </tr>
             <tr>
+              <td colspan="3"><strong>UDL Considerations</strong><br><br>${pt && pt.udl ? formatTextForWord(pt.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+            </tr>
+            <tr>
               <td colspan="3">
                 <strong>Evaluative Criteria Rubric</strong><br><br>
                 ${pt && Array.isArray(pt.evaluativeCriteria) ? `
@@ -625,7 +630,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       ${pt.evaluativeCriteria.map(c => `
                         <tr>
                           <td style="padding: 8px; vertical-align: top;">
-                            <strong>${formatTextForWord(c.criterion)}</strong>
+                            <strong>${applyInline(c.criterion)}</strong>
                             <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
                               <strong>KUSPs:</strong><br>${formatTextForWord(c.kusps)}
                             </div>
@@ -652,9 +657,13 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
-                <td style="width: 25%;"><strong>${e.title}</strong><br><br>${formatTextForWord(e.evaluativeCriteria)}</td>
-                <td style="width: 60%;"><i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}</td>
-                <td style="width: 15%; text-align: center;">${e.method}</td>
+                <td style="width: 25%; vertical-align: top;">
+                  <strong>${applyInline(e.title)}</strong><br><br>
+                  <strong>UDL Considerations:</strong><br>${e.udl ? formatTextForWord(e.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}<br><br>
+                  <strong>Evaluative Criteria:</strong><br>${formatTextForWord(e.evaluativeCriteria)}
+                </td>
+                <td style="width: 60%; vertical-align: top;"><i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}</td>
+                <td style="width: 15%; text-align: center; vertical-align: top;">${e.method}</td>
               </tr>
             `).join('') : `
               <tr>
@@ -667,7 +676,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
                  <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
-                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong><em>[${sa.category}]</em></strong> - <strong>${formatTextForWord(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
+                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong><em>[${sa.category}]</em></strong> - <strong>${applyInline(sa.title)}</strong><br>${formatTextForWord(sa.description)}${sa.udl ? `<br><strong>UDL Considerations:</strong> ${applyInline(sa.udl)}` : ''}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
               </td>
             </tr>
           </table>
@@ -704,12 +713,15 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <tr>
                 <td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle;">${i+1}</td>
                 <td style="vertical-align: top;">
-                  <strong>${formatTextForWord(l.title)}</strong>
+                  <strong>${applyInline(l.title)}</strong>
                   <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
                     <strong>KUSPs:</strong><br>${formatTextForWord(l.kusps)}
                   </div>
                 </td>
-                <td style="vertical-align: top;">${formatTextForWord(l.description)}</td>
+                <td style="vertical-align: top;">
+                   ${formatTextForWord(l.description)}
+                   ${l.udl ? `<div style="margin-top: 12px;"><strong>UDL Considerations:</strong><br>${formatTextForWord(l.udl)}</div>` : ''}
+                </td>
               </tr>
               <tr>
                 <td colspan="2" style="background-color: #f8fafc; padding: 12px; vertical-align: top;">
@@ -1171,6 +1183,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         return contextText;
       };
 
+      // AI GENERATION HANDLERS (Cleaned and De-Duplicated)
+      
       const handleGenerateTransferGoals = async (unitItems, unitNum) => {
         if (!apiKey) return;
         setActiveAiTool(null);
@@ -1200,7 +1214,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         const context = buildPromptContext(unitItems);
         let prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.`;
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
-        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The short name or title of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "descriptor": A detailed description of what successful demonstration of this criterion looks like.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly four keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "udl": A string containing a brief "UDL Considerations" section (1-2 bullet points explaining alignment to UDL principles).\n4. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The short name or title of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "descriptor": A detailed description of what successful demonstration of this criterion looks like.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1221,7 +1235,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
         
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evaluativeCriteria": A summary of the specific KUSPs being evaluated, PLUS one additional sentence explaining exactly how these KUSPs build toward the overarching Learning Outcome(s) (LO).\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evidence": A description of the assessment task or activity.\n- "udl": A brief "UDL Considerations" section explaining alignment to UDL principles.\n- "evaluativeCriteria": A summary of the specific KUSPs being evaluated, PLUS one additional sentence explaining exactly how these KUSPs build toward the overarching Learning Outcome(s) (LO).\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1232,7 +1246,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         }
       };
 
-      // NEW AI TOOL: Student Self-Assessment
       const handleGenerateSelfAssessment = async (unitItems, unitNum) => {
         if (!apiKey) return;
         setActiveAiTool(null);
@@ -1243,7 +1256,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
         
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.\n- "udl": A brief "UDL Considerations" section explaining alignment to UDL principles.`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1268,7 +1281,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
 
         let prompt = `${context}\n\nPlease brainstorm 5 creative, highly engaging lesson activities for this unit. For 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.`;
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "udl": A brief "UDL Considerations" section explaining alignment to UDL principles.\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1278,6 +1291,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           setLlmModal(prev => ({ ...prev, title: 'Generation Failed', error: err.message, isLoading: false }));
         }
       };
+
+      // --- Interaction Handlers ---
 
       const handleSelectCheckboxItem = (idx) => {
         setLlmModal(prev => {
@@ -1343,19 +1358,19 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             } else {
                 criteriaText = llmModal.content.evaluativeCriteria;
             }
-            textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nEVALUATIVE CRITERIA:\n${criteriaText}`;
+            textToCopy = `SCENARIO:\n${llmModal.content.scenario}\n\nELEMENTS:\n${llmModal.content.elements}\n\nUDL CONSIDERATIONS:\n${llmModal.content.udl}\n\nEVALUATIVE CRITERIA:\n${criteriaText}`;
         } else if (llmModal.type === 'transfer' && llmModal.content?.goals) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content.goals[i]) : llmModal.content.goals;
             textToCopy = `ALIGNMENT CHECK:\n${llmModal.content.alignmentCheck}\n\nTRANSFER GOALS:\n` + itemsToCopy.map((g, i) => `${i+1}. ${g.goal}\nRationale: ${g.rationale}`).join('\n\n');
         } else if (llmModal.type === 'evidence' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
+            textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nUDL Considerations: ${e.udl}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
         } else if (llmModal.type === 'selfAssessment' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((sa, i) => `${i+1}. [${sa.category}] ${sa.title}\nDescription: ${sa.description}`).join('\n\n');
+            textToCopy = itemsToCopy.map((sa, i) => `${i+1}. [${sa.category}] ${sa.title}\nDescription: ${sa.description}\nUDL Considerations: ${sa.udl}`).join('\n\n');
         } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
+            textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nUDL Considerations: ${l.udl}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
         }
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
@@ -2270,6 +2285,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                     <FormattedAIText text={currentUnitData.performanceTask.scenario} className="mb-4" />
                     <h4 className="font-bold text-sm text-gray-700">Elements</h4>
                     <FormattedAIText text={currentUnitData.performanceTask.elements} className="mb-4" />
+                    <h4 className="font-bold text-sm text-gray-700">UDL Considerations</h4>
+                    <FormattedAIText text={currentUnitData.performanceTask.udl} className="mb-4" />
                     <h4 className="font-bold text-sm text-gray-700">Evaluative Criteria</h4>
                     {Array.isArray(currentUnitData.performanceTask.evaluativeCriteria) ? (
                       <div className="overflow-x-auto mt-2 border border-gray-200 rounded-md">
@@ -2323,6 +2340,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
                           </div>
                           <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
+                          <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={ev.udl} /></div>
                           <div><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
                         </div>
                       ))}
@@ -2348,6 +2366,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
                           </div>
                           <div><FormattedAIText text={sa.description} /></div>
+                          {sa.udl && <div className="mt-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={sa.udl} /></div>}
                         </div>
                       ))}
                     </div>
@@ -2369,6 +2388,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                           </button>
                           <h4 className="font-bold text-base text-gray-900 mb-1 pr-6">{i+1}. {l.title}</h4>
                           <div className="mb-3"><FormattedAIText text={l.description} /></div>
+                          {l.udl && <div className="mb-3"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={l.udl} /></div>}
                           <p className="text-xs text-gray-600 mb-1"><b>KUSPs:</b> {l.kusps}</p>
                           <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {l.competencies}</p>
                           <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
@@ -2480,6 +2500,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                            <FormattedAIText text={llmModal.content.scenario} />
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Elements</h4>
                            <FormattedAIText text={llmModal.content.elements} />
+                           <h4 className="font-bold text-indigo-900 mb-1 mt-4">UDL Considerations</h4>
+                           <FormattedAIText text={llmModal.content.udl} />
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Evaluative Criteria</h4>
                            {Array.isArray(llmModal.content.evaluativeCriteria) ? (
                               <div className="overflow-x-auto mt-2 mb-4 border border-gray-200 rounded-md">
@@ -2548,6 +2570,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.method}</span>
                                      </div>
                                      <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
+                                     <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={ev.udl} /></div>
                                      <div><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
                                   </div>
                                </label>
@@ -2567,6 +2590,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
                                      </div>
                                      <div><FormattedAIText text={sa.description} /></div>
+                                     {sa.udl && <div className="mt-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={sa.udl} /></div>}
                                   </div>
                                </label>
                            ))}
@@ -2582,6 +2606,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                   <div className="flex-1">
                                      <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
                                      <div className="mb-2"><FormattedAIText text={lesson.description} /></div>
+                                     {lesson.udl && <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={lesson.udl} /></div>}
                                      <p className="text-xs text-gray-600 mb-1"><b>KUSPs:</b> {lesson.kusps}</p>
                                      <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {lesson.competencies}</p>
                                      <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>

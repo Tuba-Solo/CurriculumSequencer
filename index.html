@@ -664,10 +664,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <tr>
                 <td style="width: 25%; vertical-align: top;">
                   <strong>${applyInline(e.title)}</strong><br><br>
-                  <strong>UDL Considerations:</strong><br>${e.udl ? formatTextForWord(e.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}<br><br>
                   <strong>Evaluative Criteria:</strong><br>${formatTextForWord(e.evaluativeCriteria)}
                 </td>
-                <td style="width: 60%; vertical-align: top;"><i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}</td>
+                <td style="width: 60%; vertical-align: top;">
+                  <i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}<br><br>
+                  <strong>UDL Considerations:</strong><br>${e.udl ? formatTextForWord(e.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
+                </td>
                 <td style="width: 15%; text-align: center; vertical-align: top;">${e.method}</td>
               </tr>
             `).join('') : `

@@ -721,9 +721,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
+                <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;"><strong>${applyInline(e.title)}</strong></td>
+              </tr>
+              <tr>
                 <td style="width: 30%; vertical-align: top;">
-                  <strong>${applyInline(e.title)}</strong><br>
-                  <strong>Evaluative Criteria:</strong><br>${formatTextForWord(e.evaluativeCriteria)}
+                  ${formatTextForWord(e.evaluativeCriteria)}
                 </td>
                 <td colspan="2" style="width: 70%; vertical-align: top;">
                   <strong><em>${e.assessmentType} ${e.method}</em></strong><br>${formatTextForWord(e.evidence)}
@@ -744,6 +746,9 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </tr>
               ` : ''}
             `).join('') : `
+              <tr>
+                <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;"><strong><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></strong></td>
+              </tr>
               <tr>
                 <td style="width: 30%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
                 <td colspan="2" style="width: 70%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
@@ -770,44 +775,42 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             </tr>
           </table>
           <table>
-            <tr><th colspan="4">Stage 3 - Learning Plan</th></tr>
+            <tr><th colspan="3">Stage 3 - Learning Plan</th></tr>
             <tr>
-              <td colspan="4" class="instruction-text">
+              <td colspan="3" class="instruction-text">
                 <p>What teaching and learning experiences will you use to:</p>
                 <ul><li>achieve the desired results identified in Stage 1?</li><li>equip students to complete the assessment tasks identified in Stage 2?</li></ul>
               </td>
             </tr>
-            <tr><td colspan="4" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr>
-              <td colspan="4" class="instruction-text">
+              <td colspan="3" class="instruction-text">
                 <p style="margin-bottom: 8px;">Where are your students headed? Where have they been? How will you make sure the students know where they are going?</p>
                 <p style="margin-bottom: 8px;">What experiences do the learners bring to the unit? How have the interests of the learners been ascertained? Have the learners been part of the pre-planning in any way?</p>
                 <p>What individual needs do you anticipate will need to be addressed?</p>
               </td>
             </tr>
-            <tr><td colspan="4" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
-            <tr><td colspan="4" class="instruction-text"><p>How will you engage students at the beginning of the unit?</p></td></tr>
-            <tr><td colspan="4" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
-            <tr><td colspan="4" class="instruction-text"><p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p></td></tr>
-            <tr><td colspan="4" style="height: 150px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
+            <tr><td colspan="3" class="instruction-text"><p>How will you engage students at the beginning of the unit?</p></td></tr>
+            <tr><td colspan="3" style="height: 100px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
+            <tr><td colspan="3" class="instruction-text"><p>What events will help students experience and explore the enduring understandings and essential questions in the unit? How will you equip them with needed skills and knowledge?</p></td></tr>
+            <tr><td colspan="3" style="height: 150px; vertical-align: top; padding: 12px;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td></tr>
             <tr>
-              <th colspan="4" style="background-color: #fff; padding-top: 30px; padding-bottom: 10px; border: none; border-bottom: 2px solid #cbd5e1; font-size: 16pt; color: #1e293b; text-align: left;">Lesson Ideas</th>
-            </tr>
-            <tr>
-              <th style="width: 5%; background-color: #e2e8f0; font-size: 11pt; text-align: center;">#</th>
-              <th style="width: 30%; background-color: #e2e8f0; font-size: 11pt; text-align: left;">Lesson Title</th>
-              <th colspan="2" style="width: 65%; background-color: #e2e8f0; font-size: 11pt; text-align: left;">Lesson Activities</th>
+              <th colspan="3" style="background-color: #fff; padding-top: 30px; padding-bottom: 10px; border: none; border-bottom: 2px solid #cbd5e1; font-size: 16pt; color: #1e293b; text-align: left;">Lesson Ideas</th>
             </tr>
             ${lessons.length > 0 ? lessons.map((l, i) => `
               <tr>
-                <td rowspan="3" style="text-align: center; font-weight: bold; vertical-align: middle;">${i+1}</td>
-                <td style="vertical-align: top;">
-                  <strong>${applyInline(l.title)}</strong>
-                  <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;">
+                  <strong>${i+1}. ${applyInline(l.title)}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 33.33%;">
+                  <div style="font-size: 10pt; color: #475569;">
                     <strong>KUSPs:</strong><br>${formatTextForWord(l.kusps)}
                   </div>
                 </td>
-                <td colspan="2" style="vertical-align: top;">
+                <td colspan="2" style="vertical-align: top; width: 66.67%;">
                    ${formatTextForWord(l.description)}
                 </td>
               </tr>
@@ -824,23 +827,26 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </td>
               </tr>
               <tr>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 30%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Success Criteria¹:</strong><br>${formatTextForWord(l.successCriteria)}</p>
                 </td>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 35%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Cross-curricular Competencies:</strong><br>${formatTextForWord(l.competencies)}</p>
                 </td>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 30%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong><br><i style="color: #94a3b8;">[Enter your response here...]</i></p>
                 </td>
               </tr>
             `).join('') : ''}
             ${Array(Math.max(0, 10 - lessons.length)).fill(`
               <tr>
-                <td rowspan="3" style="text-align: center; font-weight: bold; vertical-align: middle;"><br><br></td>
-                <td style="vertical-align: top;">
-                  <br><br>
-                  <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;">
+                  <strong><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></strong>
+                </td>
+              </tr>
+              <tr>
+                <td style="vertical-align: top; width: 33.33%;">
+                  <div style="font-size: 10pt; color: #475569;">
                     <strong>KUSPs:</strong><br><br>
                   </div>
                 </td>
@@ -859,13 +865,13 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </td>
               </tr>
               <tr>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 30%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Success Criteria¹:</strong> </p>
                 </td>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 35%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 6px;"><strong>Cross-curricular Competencies:</strong> </p>
                 </td>
-                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 30%;">
+                <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 33.33%;">
                   <p style="margin-top: 0; margin-bottom: 0;"><strong>Resources:</strong><br><i style="color: #94a3b8;">[Enter your response here...]</i></p>
                 </td>
               </tr>

@@ -639,7 +639,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               <td colspan="3" style="width: 80%;">${unitDataForExport?.unitOverview ? formatTextForWord(unitDataForExport.unitOverview) : ''}</td>
             </tr>
           </table>
-          <br clear="all" style="page-break-before: always;" />
+          <br clear="all" style="page-break-before:always" />
           <table>
             <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
             <tr>
@@ -665,7 +665,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </td>
             </tr>
           </table>
-          <br clear="all" style="page-break-before: always;" />
+          <br clear="all" style="page-break-before:always" />
           <table>
             <tr><th colspan="3">Stage 2 - Assessment Evidence</th></tr>
             <tr>
@@ -777,7 +777,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </td>
             </tr>
           </table>
-          <br clear="all" style="page-break-before: always;" />
+          <br clear="all" style="page-break-before:always" />
           <table>
             <tr><th colspan="4" style="background-color: #e2e8f0; text-align: left; font-size: 14pt;">Stage 3 - Learning Plan</th></tr>
             <tr>
@@ -889,14 +889,26 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         </html>
       `;
 
-      const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.doc`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const converted = window.htmlDocx.asBlob(html, { orientation: 'landscape' });
+        const url = URL.createObjectURL(converted);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.docx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.error("DOCX conversion failed, falling back to legacy DOC format", err);
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${unitName.replace(/\s+/g, '_')}_UbD_Template.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
     };
 
     // --- Components ---

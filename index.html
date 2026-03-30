@@ -67,6 +67,7 @@ For every output you generate, ensure the following UDL principles are explicitl
 - Build fluencies with graduated levels of support: Provide clear rubrics, checklists, exemplars, and sentence starters to help students plan and execute their work.
 
 FORMATTING REQUIREMENTS:
+- BE CLEAR AND CONCISE: Avoid verbosity, fluff, and unnecessary introductory or concluding remarks. Get straight to the point to save space in the final document.
 - Structure your output with clear, professional headings, bullet points, and bold text for readability.
 - At the end of every generated lesson, assessment, or performance task, include a "UDL Considerations" section. CRITICAL: You MUST format this section using exactly three Markdown sub-headings (### **Multiple Means of Engagement**, ### **Multiple Means of Representation**, ### **Multiple Means of Action and Expression**). Under each sub-heading, provide exactly 2-3 actionable bullet point suggestions. Do NOT write long, wordy paragraphs.
 - Tone: Professional, encouraging, adaptable, and deeply respectful of K-12 students' diverse cognitive, physical, and emotional needs.
@@ -501,7 +502,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           const trimmed = line.trim();
           if (!trimmed) {
              closeList();
-             html += '<br>';
+             // Prevent double spaces by NOT appending <br> when there's an empty line, 
+             // since <p> and <ul> already have their own bottom margins.
              return;
           }
           
@@ -525,7 +527,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             html += `<li style="margin-bottom: 4px; line-height: 1.4; margin-left: ${marginPx}px;">${applyInline(isNumber[2])}</li>`;
           } else {
             closeList();
-            html += `<p style="margin-top:0; margin-bottom:12px; line-height: 1.4;">${applyInline(trimmed)}</p>`;
+            html += `<p style="margin-top:0; margin-bottom:6px; line-height: 1.4;">${applyInline(trimmed)}</p>`;
           }
         });
         closeList();
@@ -563,8 +565,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             h1 { text-align: center; color: #1e293b; font-size: 18pt; margin-bottom: 20px; }
             h2 { font-size: 12pt; margin-top: 0; color: #334155; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
             ul { margin-top: 8px; padding-left: 20px; }
-            .meta-table th { background-color: #f8fafc; width: 20%; font-size: 12pt; }
-            .meta-table td { width: 80%; }
+            .meta-table th { background-color: #f8fafc; font-size: 12pt; }
             .instruction-text { background-color: #f8fafc; color: #475569; font-style: italic; }
           </style>
         </head>
@@ -572,12 +573,26 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           <div class="WordSection1">
           <h1>Understanding by Design (UbD) Unit Plan</h1>
           <table class="meta-table">
-            <tr><th>Title of Unit</th><td><strong>${unitName}</strong></td></tr>
-            <tr><th>Grade Level</th><td><strong>${config && config.grade ? 'Grade ' + config.grade : ''}</strong></td></tr>
-            <tr><th>Subject</th><td><strong>${config && config.subject ? config.subject : ''}</strong></td></tr>
-            <tr><th>Time Frame</th><td><strong>${unitDataForExport?.timeframe || ''}</strong></td></tr>
-            <tr><th>Developed By</th><td><strong>${unitDataForExport?.developedBy || ''}</strong></td></tr>
-            <tr><th>Unit Overview</th><td>${unitDataForExport?.unitOverview ? formatTextForWord(unitDataForExport.unitOverview) : ''}</td></tr>
+            <tr>
+              <th style="width: 20%;">Title of Unit</th>
+              <td colspan="3" style="width: 80%;"><strong>${unitName}</strong></td>
+            </tr>
+            <tr>
+              <th style="width: 20%;">Grade Level</th>
+              <td style="width: 30%;"><strong>${config && config.grade ? 'Grade ' + config.grade : ''}</strong></td>
+              <th style="width: 20%;">Subject</th>
+              <td style="width: 30%;"><strong>${config && config.subject ? config.subject : ''}</strong></td>
+            </tr>
+            <tr>
+              <th style="width: 20%;">Time Frame</th>
+              <td style="width: 30%;"><strong>${unitDataForExport?.timeframe || ''}</strong></td>
+              <th style="width: 20%;">Developed By</th>
+              <td style="width: 30%;"><strong>${unitDataForExport?.developedBy || ''}</strong></td>
+            </tr>
+            <tr>
+              <th style="width: 20%;">Unit Overview</th>
+              <td colspan="3" style="width: 80%;">${unitDataForExport?.unitOverview ? formatTextForWord(unitDataForExport.unitOverview) : ''}</td>
+            </tr>
           </table>
           <table>
             <tr><th colspan="2">Stage 1 - Desired Results</th></tr>
@@ -614,14 +629,14 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </td>
             </tr>
             <tr>
-              <td colspan="3"><strong>Elements of the Performance Task</strong><br><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+              <td colspan="3"><strong>Elements of the Performance Task</strong><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
             </tr>
             <tr>
-              <td colspan="3"><strong>UDL Considerations</strong><br><br>${pt && pt.udl ? formatTextForWord(pt.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+              <td colspan="3"><strong>UDL Considerations</strong><br>${pt && pt.udl ? formatTextForWord(pt.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
             </tr>
             <tr>
               <td colspan="3">
-                <strong>Evaluative Criteria Rubric</strong><br><br>
+                <strong>Evaluative Criteria Rubric</strong><br>
                 ${pt && Array.isArray(pt.evaluativeCriteria) ? `
                   <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
                     <thead>
@@ -663,11 +678,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             ${evList.length > 0 ? evList.map(e => `
               <tr>
                 <td style="width: 25%; vertical-align: top;">
-                  <strong>${applyInline(e.title)}</strong><br><br>
+                  <strong>${applyInline(e.title)}</strong><br>
                   <strong>Evaluative Criteria:</strong><br>${formatTextForWord(e.evaluativeCriteria)}
                 </td>
                 <td style="width: 60%; vertical-align: top;">
-                  <i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}<br><br>
+                  <i>${e.assessmentType}</i><br>${formatTextForWord(e.evidence)}<br>
                   <strong>UDL Considerations:</strong><br>${e.udl ? formatTextForWord(e.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
                 </td>
                 <td style="width: 15%; text-align: center; vertical-align: top;">${e.method}</td>

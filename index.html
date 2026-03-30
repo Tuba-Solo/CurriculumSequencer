@@ -69,7 +69,7 @@ For every output you generate, ensure the following UDL principles are explicitl
 FORMATTING REQUIREMENTS:
 - BE CLEAR AND CONCISE: Avoid verbosity, fluff, and unnecessary introductory or concluding remarks. Get straight to the point to save space in the final document.
 - Structure your output with clear, professional headings, bullet points, and bold text for readability.
-- At the end of every generated lesson, assessment, or performance task, include a "UDL Considerations" section. CRITICAL: You MUST format this section using exactly three Markdown sub-headings (### **Multiple Means of Engagement**, ### **Multiple Means of Representation**, ### **Multiple Means of Action and Expression**). Under each sub-heading, provide exactly 2-3 actionable bullet point suggestions. Do NOT write long, wordy paragraphs.
+- At the end of every generated lesson, assessment, or performance task (DO NOT INCLUDE for Student Self-Assessments), include a "UDL Considerations" section. CRITICAL: You MUST format this section using exactly three Markdown sub-headings (### **Multiple Means of Engagement**, ### **Multiple Means of Representation**, ### **Multiple Means of Action and Expression**). Under each sub-heading, provide exactly 2-3 actionable bullet point suggestions. Do NOT write long, wordy paragraphs.
 - Tone: Professional, encouraging, adaptable, and deeply respectful of K-12 students' diverse cognitive, physical, and emotional needs.
 
 Your goal is to eliminate barriers to learning by designing proactively for the margins, ensuring every student has an equal opportunity to succeed based on the provided curricular goals.
@@ -435,6 +435,51 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       return <div className={`text-sm text-gray-800 ${className || ''}`}>{elements}</div>;
     };
 
+    // NEW: Extracts UDL string into 3 separate parts for distinct column rendering
+    const getUdlParts = (udlString) => {
+        if (!udlString) return { eng: '', rep: '', act: '' };
+        const parts = { eng: '', rep: '', act: '' };
+        
+        const engRegex = /###\s*(?:\*\*)?Multiple Means of Engagement(?:\*\*)?\s*([\s\S]*?)(?=###|$)/i;
+        const repRegex = /###\s*(?:\*\*)?Multiple Means of Representation(?:\*\*)?\s*([\s\S]*?)(?=###|$)/i;
+        const actRegex = /###\s*(?:\*\*)?Multiple Means of Action (?:and|&) Expression(?:\*\*)?\s*([\s\S]*?)(?=###|$)/i;
+
+        const eMatch = udlString.match(engRegex);
+        const rMatch = udlString.match(repRegex);
+        const aMatch = udlString.match(actRegex);
+
+        if (eMatch) parts.eng = eMatch[1].trim();
+        if (rMatch) parts.rep = rMatch[1].trim();
+        if (aMatch) parts.act = aMatch[1].trim();
+
+        if (!parts.eng && !parts.rep && !parts.act) return { eng: udlString, rep: '', act: '' };
+        return parts;
+    };
+
+    const UdlGrid = ({ udl }) => {
+        if (!udl) return null;
+        const parts = getUdlParts(udl);
+        return (
+            <div className="mt-3 border border-indigo-100 rounded-md overflow-hidden bg-white shadow-sm mb-3">
+                <div className="bg-indigo-50 px-3 py-2 border-b border-indigo-100 font-bold text-xs text-indigo-900 uppercase tracking-wider flex items-center"><SparkleIcon /> UDL Considerations</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-indigo-100">
+                    <div className="p-3 bg-white">
+                        <strong className="block text-xs text-indigo-800 mb-1 border-b border-indigo-50 pb-1">Engagement</strong>
+                        <FormattedAIText text={parts.eng} className="text-xs" />
+                    </div>
+                    <div className="p-3 bg-white">
+                        <strong className="block text-xs text-indigo-800 mb-1 border-b border-indigo-50 pb-1">Representation</strong>
+                        <FormattedAIText text={parts.rep} className="text-xs" />
+                    </div>
+                    <div className="p-3 bg-white">
+                        <strong className="block text-xs text-indigo-800 mb-1 border-b border-indigo-50 pb-1">Action & Expression</strong>
+                        <FormattedAIText text={parts.act} className="text-xs" />
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     const exportToWord = (unitName, items, config, unitDataForExport) => {
       const categories = {
         understandings: items.filter(i => getCategory(i.code) === 'understandings'),
@@ -681,21 +726,46 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   <strong>Evaluative Criteria:</strong><br>${formatTextForWord(e.evaluativeCriteria)}
                 </td>
                 <td colspan="2" style="width: 70%; vertical-align: top;">
-                  <strong><em>${e.assessmentType} ${e.method}</em></strong><br>${formatTextForWord(e.evidence)}<br>
-                  <strong>UDL Considerations:</strong><br>${e.udl ? formatTextForWord(e.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
+                  <strong><em>${e.assessmentType} ${e.method}</em></strong><br>${formatTextForWord(e.evidence)}
                 </td>
               </tr>
+              ${e.udl ? `
+              <tr>
+                <td colspan="3" style="padding: 0; border: 1px solid #000;">
+                  <table style="width: 100%; border-collapse: collapse; border: none; margin: 0;">
+                    <tr><th colspan="3" style="border: none; border-bottom: 1px solid #000; background-color: #f8fafc; padding: 6px 12px; font-size: 11pt;"><strong>UDL Considerations</strong></th></tr>
+                    <tr>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Engagement</strong><br>${formatTextForWord(getUdlParts(e.udl).eng)}</td>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Representation</strong><br>${formatTextForWord(getUdlParts(e.udl).rep)}</td>
+                      <td style="width: 33.33%; border: none; padding: 8px; vertical-align: top;"><strong>Multiple Means of Action & Expression</strong><br>${formatTextForWord(getUdlParts(e.udl).act)}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              ` : ''}
             `).join('') : `
               <tr>
                 <td style="width: 30%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
                 <td colspan="2" style="width: 70%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 0; border: 1px solid #000;">
+                  <table style="width: 100%; border-collapse: collapse; border: none; margin: 0;">
+                    <tr><th colspan="3" style="border: none; border-bottom: 1px solid #000; background-color: #f8fafc; padding: 6px 12px; font-size: 11pt;"><strong>UDL Considerations</strong></th></tr>
+                    <tr>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Engagement</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Representation</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                      <td style="width: 33.33%; border: none; padding: 8px; vertical-align: top;"><strong>Multiple Means of Action & Expression</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                    </tr>
+                  </table>
+                </td>
               </tr>
             `}
             <tr>
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
                  <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
-                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong><em>[${sa.category}]</em></strong> - <strong>${applyInline(sa.title)}</strong><br>${formatTextForWord(sa.description)}${sa.udl ? `<br><strong>UDL Considerations:</strong> ${applyInline(sa.udl)}` : ''}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
+                 ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong><em>[${sa.category}]</em></strong> - <strong>${applyInline(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
               </td>
             </tr>
           </table>
@@ -730,7 +800,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             </tr>
             ${lessons.length > 0 ? lessons.map((l, i) => `
               <tr>
-                <td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle;">${i+1}</td>
+                <td rowspan="3" style="text-align: center; font-weight: bold; vertical-align: middle;">${i+1}</td>
                 <td style="vertical-align: top;">
                   <strong>${applyInline(l.title)}</strong>
                   <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
@@ -739,7 +809,18 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </td>
                 <td colspan="2" style="vertical-align: top;">
                    ${formatTextForWord(l.description)}
-                   ${l.udl ? `<div style="margin-top: 12px;"><strong>UDL Considerations:</strong><br>${formatTextForWord(l.udl)}</div>` : ''}
+                </td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 0; border: 1px solid #000;">
+                  <table style="width: 100%; border-collapse: collapse; border: none; margin: 0;">
+                    <tr><th colspan="3" style="border: none; border-bottom: 1px solid #000; background-color: #f8fafc; padding: 6px 12px; font-size: 11pt;"><strong>UDL Considerations</strong></th></tr>
+                    <tr>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Engagement</strong><br>${l.udl ? formatTextForWord(getUdlParts(l.udl).eng) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Representation</strong><br>${l.udl ? formatTextForWord(getUdlParts(l.udl).rep) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+                      <td style="width: 33.33%; border: none; padding: 8px; vertical-align: top;"><strong>Multiple Means of Action & Expression</strong><br>${l.udl ? formatTextForWord(getUdlParts(l.udl).act) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
               <tr>
@@ -756,7 +837,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             `).join('') : ''}
             ${Array(Math.max(0, 10 - lessons.length)).fill(`
               <tr>
-                <td rowspan="2" style="text-align: center; font-weight: bold; vertical-align: middle;"><br><br></td>
+                <td rowspan="3" style="text-align: center; font-weight: bold; vertical-align: middle;"><br><br></td>
                 <td style="vertical-align: top;">
                   <br><br>
                   <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
@@ -764,6 +845,18 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   </div>
                 </td>
                 <td colspan="2" style="vertical-align: top;"><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></td>
+              </tr>
+              <tr>
+                <td colspan="3" style="padding: 0; border: 1px solid #000;">
+                  <table style="width: 100%; border-collapse: collapse; border: none; margin: 0;">
+                    <tr><th colspan="3" style="border: none; border-bottom: 1px solid #000; background-color: #f8fafc; padding: 6px 12px; font-size: 11pt;"><strong>UDL Considerations</strong></th></tr>
+                    <tr>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Engagement</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                      <td style="width: 33.33%; border: none; border-right: 1px solid #000; padding: 8px; vertical-align: top;"><strong>Multiple Means of Representation</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                      <td style="width: 33.33%; border: none; padding: 8px; vertical-align: top;"><strong>Multiple Means of Action & Expression</strong><br><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                    </tr>
+                  </table>
+                </td>
               </tr>
               <tr>
                 <td style="background-color: #f8fafc; padding: 12px; vertical-align: top; width: 30%;">
@@ -1283,7 +1376,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
         
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.\n- "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). CRITICAL: Do NOT generate UDL considerations for Student Self-Assessments. Focus purely on the assessment itself. Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1391,13 +1484,13 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             textToCopy = `ALIGNMENT CHECK:\n${llmModal.content.alignmentCheck}\n\nTRANSFER GOALS:\n` + itemsToCopy.map((g, i) => `${i+1}. ${g.goal}\nRationale: ${g.rationale}`).join('\n\n');
         } else if (llmModal.type === 'evidence' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nUDL Considerations: ${e.udl}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
+            textToCopy = itemsToCopy.map((e, i) => `${i+1}. ${e.title} [${e.assessmentType} ${e.method}]\nEvidence: ${e.evidence}\nUDL Considerations:\n${e.udl}\nEvaluative Criteria: ${e.evaluativeCriteria}`).join('\n\n');
         } else if (llmModal.type === 'selfAssessment' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((sa, i) => `${i+1}. [${sa.category}] ${sa.title}\nDescription: ${sa.description}\nUDL Considerations: ${sa.udl}`).join('\n\n');
+            textToCopy = itemsToCopy.map((sa, i) => `${i+1}. [${sa.category}] ${sa.title}\nDescription: ${sa.description}`).join('\n\n');
         } else if (llmModal.type === 'lessons' && Array.isArray(llmModal.content)) {
             const itemsToCopy = llmModal.selectedIndices.length > 0 ? llmModal.selectedIndices.map(i => llmModal.content[i]) : llmModal.content;
-            textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nUDL Considerations: ${l.udl}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
+            textToCopy = itemsToCopy.map((l, i) => `${i+1}. ${l.title}\nDescription: ${l.description}\nUDL Considerations:\n${l.udl}\nKUSPs: ${l.kusps}\nCompetencies: ${l.competencies}\nSuccess Criteria: ${l.successCriteria}`).join('\n\n');
         }
         const textArea = document.createElement("textarea");
         textArea.value = textToCopy;
@@ -2312,8 +2405,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                     <FormattedAIText text={currentUnitData.performanceTask.scenario} className="mb-4" />
                     <h4 className="font-bold text-sm text-gray-700">Elements</h4>
                     <FormattedAIText text={currentUnitData.performanceTask.elements} className="mb-4" />
-                    <h4 className="font-bold text-sm text-gray-700">UDL Considerations</h4>
-                    <FormattedAIText text={currentUnitData.performanceTask.udl} className="mb-4" />
+                    <UdlGrid udl={currentUnitData.performanceTask.udl} />
+                    <h4 className="font-bold text-sm text-gray-700 mt-4">Evaluative Criteria</h4>
                     <h4 className="font-bold text-sm text-gray-700">Evaluative Criteria</h4>
                     {Array.isArray(currentUnitData.performanceTask.evaluativeCriteria) ? (
                       <div className="overflow-x-auto mt-2 border border-gray-200 rounded-md">
@@ -2367,8 +2460,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
                           </div>
                           <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
-                          <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={ev.udl} /></div>
-                          <div><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
+                          <UdlGrid udl={ev.udl} />
+                          <div className="mt-3"><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
                         </div>
                       ))}
                     </div>
@@ -2393,7 +2486,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
                           </div>
                           <div><FormattedAIText text={sa.description} /></div>
-                          {sa.udl && <div className="mt-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={sa.udl} /></div>}
                         </div>
                       ))}
                     </div>
@@ -2415,10 +2507,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                           </button>
                           <h4 className="font-bold text-base text-gray-900 mb-1 pr-6">{i+1}. {l.title}</h4>
                           <div className="mb-3"><FormattedAIText text={l.description} /></div>
-                          {l.udl && <div className="mb-3"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={l.udl} /></div>}
-                          <p className="text-xs text-gray-600 mb-1"><b>KUSPs:</b> {l.kusps}</p>
-                          <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {l.competencies}</p>
-                          <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
+                          <UdlGrid udl={l.udl} />
+                          <div className="mt-3 space-y-1">
+                             <p className="text-xs text-gray-600"><b>KUSPs:</b> {l.kusps}</p>
+                             <p className="text-xs text-gray-600"><b>Competencies:</b> {l.competencies}</p>
+                             <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2527,8 +2621,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                            <FormattedAIText text={llmModal.content.scenario} />
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Elements</h4>
                            <FormattedAIText text={llmModal.content.elements} />
-                           <h4 className="font-bold text-indigo-900 mb-1 mt-4">UDL Considerations</h4>
-                           <FormattedAIText text={llmModal.content.udl} />
+                           <UdlGrid udl={llmModal.content.udl} />
                            <h4 className="font-bold text-indigo-900 mb-1 mt-4">Evaluative Criteria</h4>
                            {Array.isArray(llmModal.content.evaluativeCriteria) ? (
                               <div className="overflow-x-auto mt-2 mb-4 border border-gray-200 rounded-md">
@@ -2597,8 +2690,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                         <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">{ev.method}</span>
                                      </div>
                                      <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
-                                     <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={ev.udl} /></div>
-                                     <div><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
+                                     <UdlGrid udl={ev.udl} />
+                                     <div className="mt-3"><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
                                   </div>
                                </label>
                            ))}
@@ -2617,7 +2710,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                         <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-blue-200">{sa.category}</span>
                                      </div>
                                      <div><FormattedAIText text={sa.description} /></div>
-                                     {sa.udl && <div className="mt-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={sa.udl} /></div>}
                                   </div>
                                </label>
                            ))}
@@ -2633,10 +2725,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                   <div className="flex-1">
                                      <h4 className="font-bold text-indigo-900 text-base">{lesson.title}</h4>
                                      <div className="mb-2"><FormattedAIText text={lesson.description} /></div>
-                                     {lesson.udl && <div className="mb-2"><b className="text-xs text-gray-600 block mb-1">UDL Considerations:</b> <FormattedAIText text={lesson.udl} /></div>}
-                                     <p className="text-xs text-gray-600 mb-1"><b>KUSPs:</b> {lesson.kusps}</p>
-                                     <p className="text-xs text-gray-600 mb-1"><b>Competencies:</b> {lesson.competencies}</p>
-                                     <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
+                                     <UdlGrid udl={lesson.udl} />
+                                     <div className="mt-3 space-y-1">
+                                        <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps}</p>
+                                        <p className="text-xs text-gray-600"><b>Competencies:</b> {lesson.competencies}</p>
+                                        <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
+                                     </div>
                                   </div>
                                </label>
                            ))}

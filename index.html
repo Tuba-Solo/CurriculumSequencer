@@ -715,20 +715,17 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes.</p>
               </td>
             </tr>
-            <tr>
-              <td style="width: 30%; background-color: #f8fafc;"><strong>Evaluative Criteria</strong></td>
-              <td colspan="2" style="width: 70%; background-color: #f8fafc;"><strong>Evidence</strong></td>
-            </tr>
             ${evList.length > 0 ? evList.map(e => `
               <tr>
                 <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;"><strong>${applyInline(e.title)}</strong></td>
               </tr>
               <tr>
-                <td style="width: 30%; vertical-align: top;">
+                <td colspan="3" style="vertical-align: top; padding: 12px;">
+                  <p style="margin-top: 0; margin-bottom: 8px;"><strong><em>${e.assessmentType} ${e.method}</em></strong></p>
+                  <p style="margin-top: 0; margin-bottom: 4px;"><strong>Evaluative Criteria:</strong></p>
                   ${formatTextForWord(e.evaluativeCriteria)}
-                </td>
-                <td colspan="2" style="width: 70%; vertical-align: top;">
-                  <strong><em>${e.assessmentType} ${e.method}</em></strong><br>${formatTextForWord(e.evidence)}
+                  <p style="margin-top: 8px; margin-bottom: 4px;"><strong>Evidence:</strong></p>
+                  ${formatTextForWord(e.evidence)}
                 </td>
               </tr>
               ${e.udl ? `
@@ -750,8 +747,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 <td colspan="3" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;"><strong><p style="color: #94a3b8; font-style: italic; margin: 0;">[Enter your response here...]</p></strong></td>
               </tr>
               <tr>
-                <td style="width: 30%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
-                <td colspan="2" style="width: 70%;"><p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p></td>
+                <td colspan="3" style="vertical-align: top; padding: 12px;">
+                  <p style="margin-top: 0; margin-bottom: 4px;"><strong>Evaluative Criteria:</strong></p>
+                  <p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>
+                  <p style="margin-top: 8px; margin-bottom: 4px;"><strong>Evidence:</strong></p>
+                  <p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>
+                </td>
               </tr>
               <tr>
                 <td colspan="3" style="padding: 0; border: 1px solid #000;">

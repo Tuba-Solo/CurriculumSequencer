@@ -155,6 +155,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       parsed.evaluativeCriteria.forEach(c => {
                           if ('criterion' in c) c.criterion = normalize(c.criterion);
                           if ('kusps' in c) c.kusps = normalize(c.kusps);
+                          if ('descriptor' in c) c.descriptor = normalize(c.descriptor);
                           if ('teacherNotes' in c) c.teacherNotes = normalize(c.teacherNotes);
                       });
                   } else {
@@ -603,17 +604,22 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
                     <thead>
                       <tr>
-                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 25%;">Criterion</th>
-                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 35%;">KUSPs Addressed</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 25%;">Criterion & KUSPs</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 35%;">Descriptor</th>
                         <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 40%;">Teacher Notes (LO Alignment)</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${pt.evaluativeCriteria.map(c => `
                         <tr>
-                          <td style="padding: 8px;">${formatTextForWord(c.criterion)}</td>
-                          <td style="padding: 8px;">${formatTextForWord(c.kusps)}</td>
-                          <td style="padding: 8px;">${formatTextForWord(c.teacherNotes)}</td>
+                          <td style="padding: 8px; vertical-align: top;">
+                            <strong>${formatTextForWord(c.criterion)}</strong>
+                            <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                              <strong>KUSPs:</strong><br>${formatTextForWord(c.kusps)}
+                            </div>
+                          </td>
+                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.descriptor)}</td>
+                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.teacherNotes)}</td>
                         </tr>
                       `).join('')}
                     </tbody>
@@ -1182,7 +1188,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         const context = buildPromptContext(unitItems);
         let prompt = `${context}\n\nPlease design an authentic 'Performance Task' for this unit that assesses the selected items. Use the GRASPS model (Goal, Role, Audience, Situation, Product, Standards). Keep it engaging, realistic, and directly aligned with the provided curriculum.`;
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
-        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The name or description of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly three keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components (Goal, Role, Audience, Situation, Product, Standards) within this section.\n3. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The short name or title of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "descriptor": A detailed description of what successful demonstration of this criterion looks like.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1203,7 +1209,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
         
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evaluativeCriteria": What specific criteria or LOs are being evaluated?\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evaluativeCriteria": A summary of the specific KUSPs being evaluated, PLUS one additional sentence explaining exactly how these KUSPs build toward the overarching Learning Outcome(s) (LO).\n- "evidence": A description of the assessment task or activity.\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
 
         try {
           const response = await generateGeminiContent(prompt, apiKey, true);
@@ -1321,7 +1327,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         if (llmModal.type === 'pt' && llmModal.content) {
             let criteriaText = '';
             if (Array.isArray(llmModal.content.evaluativeCriteria)) {
-                criteriaText = llmModal.content.evaluativeCriteria.map(c => `- Criterion: ${c.criterion}\n  KUSPs: ${c.kusps}\n  Notes: ${c.teacherNotes}`).join('\n\n');
+                criteriaText = llmModal.content.evaluativeCriteria.map(c => `- Criterion: ${c.criterion}\n  KUSPs: ${c.kusps}\n  Descriptor: ${c.descriptor}\n  Notes: ${c.teacherNotes}`).join('\n\n');
             } else {
                 criteriaText = llmModal.content.evaluativeCriteria;
             }
@@ -2258,16 +2264,22 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                         <table className="min-w-full text-sm text-left">
                           <thead className="bg-gray-100 text-gray-700">
                             <tr>
-                              <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion</th>
-                              <th className="px-4 py-2 border-b border-gray-200 w-1/3">KUSPs Addressed</th>
+                              <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion & KUSPs</th>
+                              <th className="px-4 py-2 border-b border-gray-200 w-1/3">Descriptor</th>
                               <th className="px-4 py-2 border-b border-gray-200 w-5/12">Teacher Notes (LO Alignment)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
                             {currentUnitData.performanceTask.evaluativeCriteria.map((c, idx) => (
                               <tr key={idx} className="bg-white">
-                                <td className="px-4 py-3 align-top font-medium text-gray-900"><FormattedAIText text={c.criterion} /></td>
-                                <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.kusps} /></td>
+                                <td className="px-4 py-3 align-top">
+                                  <div className="font-bold text-gray-900"><FormattedAIText text={c.criterion} /></div>
+                                  <div className="mt-2 text-xs text-gray-600">
+                                    <strong className="block text-gray-700">KUSPs:</strong>
+                                    <FormattedAIText text={c.kusps} />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.descriptor} /></td>
                                 <td className="px-4 py-3 align-top text-gray-600"><FormattedAIText text={c.teacherNotes} /></td>
                               </tr>
                             ))}
@@ -2462,16 +2474,22 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                 <table className="min-w-full text-sm text-left">
                                   <thead className="bg-gray-100 text-gray-700">
                                     <tr>
-                                      <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion</th>
-                                      <th className="px-4 py-2 border-b border-gray-200 w-1/3">KUSPs Addressed</th>
+                                      <th className="px-4 py-2 border-b border-gray-200 w-1/4">Criterion & KUSPs</th>
+                                      <th className="px-4 py-2 border-b border-gray-200 w-1/3">Descriptor</th>
                                       <th className="px-4 py-2 border-b border-gray-200 w-5/12">Teacher Notes (LO Alignment)</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-gray-200">
                                     {llmModal.content.evaluativeCriteria.map((c, i) => (
                                       <tr key={i} className="bg-white">
-                                        <td className="px-4 py-3 align-top font-medium text-gray-900"><FormattedAIText text={c.criterion} /></td>
-                                        <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.kusps} /></td>
+                                        <td className="px-4 py-3 align-top">
+                                          <div className="font-bold text-gray-900"><FormattedAIText text={c.criterion} /></div>
+                                          <div className="mt-2 text-xs text-gray-600">
+                                            <strong className="block text-gray-700">KUSPs:</strong>
+                                            <FormattedAIText text={c.kusps} />
+                                          </div>
+                                        </td>
+                                        <td className="px-4 py-3 align-top text-gray-800"><FormattedAIText text={c.descriptor} /></td>
                                         <td className="px-4 py-3 align-top text-gray-600"><FormattedAIText text={c.teacherNotes} /></td>
                                       </tr>
                                     ))}

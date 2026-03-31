@@ -646,50 +646,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             <tr><th colspan="3">Stage 2 - Assessment Evidence</th></tr>
             <tr>
               <td colspan="3">
-                <h2>Performance Task</h2>
-                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
-                ${pt ? formatTextForWord(pt.scenario) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
-              </td>
-            </tr>
-            <tr>
-              <td colspan="3"><strong>Elements of the Performance Task</strong><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
-            </tr>
-            <tr>
-              <td colspan="3"><strong>UDL Considerations</strong><br>${pt && pt.udl ? formatTextForWord(pt.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
-            </tr>
-            <tr>
-              <td colspan="3">
-                <strong>Evaluative Criteria Rubric</strong><br>
-                ${pt && Array.isArray(pt.evaluativeCriteria) ? `
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
-                    <thead>
-                      <tr>
-                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 25%;">Criterion & KUSPs</th>
-                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 35%;">Descriptor</th>
-                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 40%;">Teacher Notes (LO Alignment)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${pt.evaluativeCriteria.map(c => `
-                        <tr>
-                          <td style="padding: 8px; vertical-align: top;">
-                            <strong>${applyInline(c.criterion)}</strong>
-                            <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
-                              <strong>KUSPs:</strong><br>${formatTextForWord(c.kusps)}
-                            </div>
-                          </td>
-                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.descriptor)}</td>
-                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.teacherNotes)}</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                ` : (pt ? formatTextForWord(pt.evaluativeCriteria) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>')}
-              </td>
-            </tr>
-            <tr>
-              <td colspan="3">
-                <h2>Other Evidence</h2>
+                <h2>Ongoing Assessment (Observations, Conversations, & Products)</h2>
                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what other evidence will students demonstrate achievement of the desired results? Effective assessment relies on triangulation—gathering a balanced selection of observations, conversations, and student products. Using this diverse mix of formative and summative assessments throughout the unit ensures a holistic and accurate picture of student learning.</p>
               </td>
             </tr>
@@ -745,6 +702,49 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </td>
               </tr>
             `}
+            <tr>
+              <td colspan="3">
+                <h2>Performance Task</h2>
+                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?</p>
+                ${pt ? formatTextForWord(pt.scenario) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="3"><strong>Elements of the Performance Task</strong><br>${pt ? formatTextForWord(pt.elements) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+            </tr>
+            <tr>
+              <td colspan="3"><strong>UDL Considerations</strong><br>${pt && pt.udl ? formatTextForWord(pt.udl) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}</td>
+            </tr>
+            <tr>
+              <td colspan="3">
+                <strong>Evaluative Criteria Rubric</strong><br>
+                ${pt && Array.isArray(pt.evaluativeCriteria) ? `
+                  <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+                    <thead>
+                      <tr>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 25%;">Criterion & KUSPs</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 35%;">Descriptor</th>
+                        <th style="background-color: #f8fafc; font-size: 11pt; padding: 8px; width: 40%;">Teacher Notes (LO Alignment)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${pt.evaluativeCriteria.map(c => `
+                        <tr>
+                          <td style="padding: 8px; vertical-align: top;">
+                            <strong>${applyInline(c.criterion)}</strong>
+                            <div style="margin-top: 12px; font-size: 10pt; color: #475569;">
+                              <strong>KUSPs:</strong><br>${formatTextForWord(c.kusps)}
+                            </div>
+                          </td>
+                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.descriptor)}</td>
+                          <td style="padding: 8px; vertical-align: top;">${formatTextForWord(c.teacherNotes)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                ` : (pt ? formatTextForWord(pt.evaluativeCriteria) : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>')}
+              </td>
+            </tr>
             <tr>
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
@@ -1320,7 +1320,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
 
       const handleGenerateOtherEvidence = async (unitItems, unitNum) => {
         setActiveAiTool(null);
-        setLlmModal({ isOpen: true, type: 'evidence', unitNum, selectedIndices: [], title: 'Brainstorming Other Evidence...', content: null, isLoading: true, error: '' });
+        setLlmModal({ isOpen: true, type: 'evidence', unitNum, selectedIndices: [], title: 'Brainstorming Ongoing Assessments...', content: null, isLoading: true, error: '' });
         
         const context = buildPromptContext(unitItems);
         let prompt = `${context}\n\nPlease generate a collection of exactly 3 ideas for 'Other Evidence' that can be collected by the teacher to help formulate their professional judgement and provide rich feedback. Through what other evidence (work samples, observations, quizzes, tests, journals or other means) will students demonstrate achievement of the desired results? Formative and summative assessments used throughout the unit to arrive at the outcomes. Align with the Understanding by Design (UbD) framework. Keep in mind that knowledge builds to understanding, and understanding enables skills and procedures. CRITICAL: You must strictly balance the proposed assessments across 'Observations', 'Conversations', and 'Products'. Do not return mostly one type; ensure an even mix of all three methods unless the user explicitly requests otherwise. Indicate if each assessment is formative or summative (Summative must be assessed against Learning Outcomes). Give each task a descriptive name.`;
@@ -2237,11 +2237,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                     <button onClick={() => { setActiveAiTool('transfer'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Transfer Goals (Stage 1)
                     </button>
+                    <button onClick={() => { setActiveAiTool('evidence'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
+                      <SparkleIcon /> Brainstorm Ongoing Assessment (Stage 2)
+                    </button>
                     <button onClick={() => { setActiveAiTool('pt'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Draft Performance Task (Stage 2)
-                    </button>
-                    <button onClick={() => { setActiveAiTool('evidence'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
-                      <SparkleIcon /> Brainstorm Other Evidence (Stage 2)
                     </button>
                     <button onClick={() => { setActiveAiTool('selfAssessment'); setCustomInstruction(''); }} disabled={unitItems.length === 0} className={`flex items-center px-4 py-2 rounded-md text-sm font-bold shadow-sm transition-colors ${unitItems.length > 0 ? 'bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'}`}>
                       <SparkleIcon /> Brainstorm Self-Assessments (Stage 2)
@@ -2256,7 +2256,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-100">
                     <h4 className="font-bold text-indigo-900 flex items-center text-base">
                       <SparkleIcon /> 
-                      {activeAiTool === 'pt' ? 'Drafting Performance Task' : activeAiTool === 'evidence' ? 'Brainstorming Other Evidence' : activeAiTool === 'transfer' ? 'Brainstorming Transfer Goals' : activeAiTool === 'selfAssessment' ? 'Brainstorming Self-Assessments' : 'Brainstorming Lesson Ideas'}
+                      {activeAiTool === 'pt' ? 'Drafting Performance Task' : activeAiTool === 'evidence' ? 'Brainstorming Ongoing Assessments' : activeAiTool === 'transfer' ? 'Brainstorming Transfer Goals' : activeAiTool === 'selfAssessment' ? 'Brainstorming Self-Assessments' : 'Brainstorming Lesson Ideas'}
                     </h4>
                     <button onClick={() => setActiveAiTool(null)} className="text-xs font-medium text-gray-500 hover:text-gray-800 transition-colors flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back
@@ -2336,6 +2336,33 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   </div>
                 )}
 
+                {currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0 && (
+                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].otherEvidence; return upd; })} className="absolute top-4 right-4 flex items-center text-sm font-medium text-gray-400 hover:text-red-500 transition-colors" title="Clear All Ongoing Assessments">
+                      <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      Delete all
+                    </button>
+                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Ongoing Assessment (Observations, Conversations, & Products)</h3>
+                    <div className="space-y-4">
+                      {currentUnitData.otherEvidence.map((ev, i) => (
+                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50 relative group">
+                          <button onClick={() => removeIndividualItem('otherEvidence', i)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove this assessment">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </button>
+                          <h4 className="font-bold text-base text-gray-900 mb-2 pr-6">{ev.title}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-200">{ev.assessmentType}</span>
+                             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
+                          </div>
+                          <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
+                          <UdlGrid udl={ev.udl} />
+                          <div className="mt-3"><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {currentUnitData.performanceTask && (
                   <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
                     <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].performanceTask; return upd; })} className="absolute top-4 right-4 flex items-center text-sm font-medium text-gray-400 hover:text-red-500 transition-colors" title="Remove from Unit">
@@ -2379,33 +2406,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                     ) : (
                       <FormattedAIText text={currentUnitData.performanceTask.evaluativeCriteria} />
                     )}
-                  </div>
-                )}
-                
-                {currentUnitData.otherEvidence && currentUnitData.otherEvidence.length > 0 && (
-                  <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative">
-                    <button onClick={() => setUnitData(prev => { const upd = {...prev}; delete upd[unitNum].otherEvidence; return upd; })} className="absolute top-4 right-4 flex items-center text-sm font-medium text-gray-400 hover:text-red-500 transition-colors" title="Clear All Evidence">
-                      <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      Delete all
-                    </button>
-                    <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Other Evidence</h3>
-                    <div className="space-y-4">
-                      {currentUnitData.otherEvidence.map((ev, i) => (
-                        <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50 relative group">
-                          <button onClick={() => removeIndividualItem('otherEvidence', i)} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove this evidence">
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                          </button>
-                          <h4 className="font-bold text-base text-gray-900 mb-2 pr-6">{ev.title}</h4>
-                          <div className="flex items-center gap-2 mb-2">
-                             <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-indigo-200">{ev.assessmentType}</span>
-                             <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-200">{ev.method}</span>
-                          </div>
-                          <div className="mb-2"><b>Evidence:</b> <FormattedAIText text={ev.evidence} /></div>
-                          <UdlGrid udl={ev.udl} />
-                          <div className="mt-3"><b className="text-xs text-gray-600 block mb-1">Evaluative Criteria:</b> <FormattedAIText text={ev.evaluativeCriteria} /></div>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 )}
                 
@@ -2620,7 +2620,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
 
                       {llmModal.type === 'evidence' && Array.isArray(llmModal.content) && (
                         <div className="space-y-3">
-                           <p className="text-sm text-gray-600 mb-2 italic">Select the evidence ideas you want to keep:</p>
+                           <p className="text-sm text-gray-600 mb-2 italic">Select the ongoing assessment ideas you want to keep:</p>
                            {llmModal.content.map((ev, idx) => (
                                <label key={idx} className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${llmModal.selectedIndices.includes(idx) ? 'bg-indigo-50 border-indigo-300' : 'bg-white hover:bg-gray-50'}`}>
                                   <input type="checkbox" className="mt-1 flex-shrink-0 w-5 h-5 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500" checked={llmModal.selectedIndices.includes(idx)} onChange={() => handleSelectCheckboxItem(idx)} />

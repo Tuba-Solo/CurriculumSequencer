@@ -748,7 +748,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             <tr>
               <td colspan="3">
                  <h2>Student Self-Assessment</h2>
-                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">How will students reflect upon or self-assess their learning?</p>
+                 <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">Student self-assessment involves learners demonstrating metacognitive awareness of their own understanding, mental habits, and limitations. By evaluating their own progress against specified criteria, students actively reflect on their work to identify how they can improve rather than relying solely on teacher feedback.</p>
                  ${saList.length > 0 ? `<ul>${saList.map(sa => `<li style="margin-bottom: 6px;"><strong><em>${sa.category}</em></strong> - <strong>${applyInline(sa.title)}</strong><br>${formatTextForWord(sa.description)}</li>`).join('')}</ul>` : '<p style="color: #94a3b8; font-style: italic;">[Enter your response here...]</p>'}
               </td>
             </tr>
@@ -915,6 +915,10 @@ Because the desired results from Stage 1 are derived from curricular standards, 
     const DatabaseIcon = () => <svg className="w-12 h-12 text-eips-green mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>;
     const HelpIcon = () => <svg className="w-6 h-6 text-eips-green mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
     const SparkleIcon = () => <span className="mr-1.5">✨</span>;
+    const ListIcon = () => <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+    const TargetIcon = () => <svg className="w-6 h-6 text-indigo-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.017 18L14.017 21.369C14.017 22.186 13.239 22.766 12.477 22.502L11.758 22.253L12.535 22.764C12.221 22.863 11.892 22.88 11.564 22.812C11.237 22.744 10.932 22.596 10.686 22.383C10.44 22.169 10.264 21.9 10.178 21.589C10.093 21.277 10.101 20.942 10.201 20.638L10.985 20.902L10.222 20.64L10.871 18M18.847 16.924L20.89 19.689C21.378 20.349 20.767 21.238 20.007 20.93L19.294 20.638L20.061 21.036C19.784 21.18 19.475 21.239 19.165 21.205C18.855 21.172 18.556 21.05 18.299 20.852C18.041 20.654 17.835 20.389 17.702 20.082C17.568 19.775 17.513 19.436 17.541 19.099L17.472 19.923L17.543 19.1L18.847 16.924ZM15 12A3 3 0 119 12A3 3 0 0115 12ZM20.485 12C20.485 16.686 16.686 20.485 12 20.485C7.314 20.485 3.515 16.686 3.515 12C3.515 7.314 7.314 3.515 12 3.515C16.686 3.515 20.485 7.314 20.485 12Z" /></svg>;
+    const TriangulationIcon = () => <svg className="w-6 h-6 text-emerald-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2L2 22h20L12 2z" /></svg>;
+    const UdlIcon = () => <svg className="w-6 h-6 text-fuchsia-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>;
 
     // --- Main Application Component ---
     function App() {
@@ -1626,7 +1630,19 @@ Because the desired results from Stage 1 are derived from curricular standards, 
 
       const renderOverview = () => (
         <div className="max-w-5xl mx-auto space-y-8 pb-10">
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+             <h2 className="font-bold text-lg text-gray-900 mb-3 flex items-center"><ListIcon /> Table of Contents</h2>
+             <div className="flex flex-wrap gap-2">
+                <a href="#architecture" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Curriculum Architecture Guide</a>
+                <a href="#language" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Language Conventions</a>
+                <a href="#principles" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Guiding Principles & Contexts</a>
+                <a href="#ubd" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Understanding by Design (UbD)</a>
+                <a href="#triangulation" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Triangulation of Assessment</a>
+                <a href="#udl" className="px-3 py-1.5 bg-gray-50 hover:bg-eips-green hover:text-white text-sm text-gray-700 rounded-md border border-gray-200 transition-colors">Universal Design for Learning (UDL)</a>
+             </div>
+          </div>
+
+          <div id="architecture" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
               <BookIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Curriculum Architecture Guide</h2>
             </div>
@@ -1678,7 +1694,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </div>
             </div>
           </div>
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+          <div id="language" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
               <InfoIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Language Conventions</h2>
             </div>
@@ -1709,7 +1725,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
               </div>
             </div>
           </div>
-          <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
+          <div id="principles" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
             <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
               <LightbulbIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Guiding Principles & Contexts</h2>
             </div>
@@ -1780,6 +1796,93 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   </div>
                 </div>
               </AccordionItem>
+            </div>
+          </div>
+
+          <div id="ubd" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <TargetIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Understanding by Design (UbD)</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
+              Understanding by Design (UbD) is a "backward design" framework created by Grant Wiggins and Jay McTighe. It focuses on teaching for understanding and transfer, rather than simply covering a list of topics. You start with the end goal in mind and design your assessments and lessons backward from there.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-md">
+                <h3 className="font-bold text-indigo-900 text-base mb-2">Stage 1: Desired Results</h3>
+                <p className="text-sm text-indigo-800">What should students know, understand, and be able to do? This stage focuses on unpacking curriculum outcomes, establishing essential questions, and defining long-term transfer goals.</p>
+              </div>
+              <div className="bg-purple-50 border border-purple-100 p-4 rounded-md">
+                <h3 className="font-bold text-purple-900 text-base mb-2">Stage 2: Assessment Evidence</h3>
+                <p className="text-sm text-purple-800">How will we know if students have achieved the desired results? This stage focuses on designing authentic performance tasks and gathering diverse, ongoing assessment evidence.</p>
+              </div>
+              <div className="bg-teal-50 border border-teal-100 p-4 rounded-md">
+                <h3 className="font-bold text-teal-900 text-base mb-2">Stage 3: Learning Plan</h3>
+                <p className="text-sm text-teal-800">What instructional activities and resources will equip students to achieve the desired results? This stage focuses on planning the day-to-day lessons and learning experiences.</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-r-md">
+              <h4 className="font-bold text-gray-800 text-sm mb-1">How it's used on this site:</h4>
+              <p className="text-sm text-gray-600">The <strong>Unit Plan Template</strong> generated by this site is explicitly structured around the UbD framework. Your selected curriculum items automatically populate Stage 1, while our integrated AI Assistants are specifically engineered to help you quickly draft high-quality content for Stages 2 and 3.</p>
+            </div>
+          </div>
+
+          <div id="triangulation" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <TriangulationIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Triangulation of Assessment</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
+              Triangulation of Assessment is the process of collecting evidence of student learning from three distinct, interconnected sources. Relying on just one method (like a written test) limits your perspective. By triangulating, educators can form a holistic, valid, and reliable evaluation of student understanding.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6 mb-6">
+              <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-md text-center">
+                <h3 className="font-bold text-emerald-900 text-lg mb-2">Observations</h3>
+                <p className="text-sm text-emerald-800">Watching students in action. Includes observing group work, lab experiments, practical skills, and daily classroom engagement.</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 p-4 rounded-md text-center">
+                <h3 className="font-bold text-amber-900 text-lg mb-2">Conversations</h3>
+                <p className="text-sm text-amber-800">Listening to student reasoning. Includes one-on-one interviews, student self-reflections, peer feedback, and oral defenses.</p>
+              </div>
+              <div className="bg-rose-50 border border-rose-100 p-4 rounded-md text-center">
+                <h3 className="font-bold text-rose-900 text-lg mb-2">Products</h3>
+                <p className="text-sm text-rose-800">Evaluating physical or digital artifacts. Includes essays, models, tests, portfolios, presentations, and creative projects.</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-r-md">
+              <h4 className="font-bold text-gray-800 text-sm mb-1">How it's used on this site:</h4>
+              <p className="text-sm text-gray-600">The <strong>Brainstorm Ongoing Assessment</strong> AI tool is hard-coded with triangulation principles. When generating assessment ideas for your mapped outcomes, it deliberately balances suggestions across Observations, Conversations, and Products so you have a comprehensive evaluation strategy.</p>
+            </div>
+          </div>
+
+          <div id="udl" className="bg-white p-8 rounded-lg shadow-sm border border-gray-200 scroll-mt-20">
+            <div className="flex items-center mb-6 border-b border-gray-100 pb-4">
+              <UdlIcon /><h2 className="text-2xl font-bold text-gray-900 ml-3">Universal Design for Learning (UDL)</h2>
+            </div>
+            <p className="text-gray-600 mb-6 text-sm md:text-base leading-relaxed">
+              Universal Design for Learning (UDL) is a framework to improve and optimize teaching and learning for all people. It is based on scientific insights into how humans learn and aims to proactively remove barriers by providing multiple, flexible methods of presentation, expression, and engagement.
+            </p>
+            <div className="space-y-4 mb-6">
+              <div className="flex items-start p-4 bg-fuchsia-50 rounded-md border border-fuchsia-100">
+                <div className="ml-2">
+                  <h4 className="font-bold text-fuchsia-900 text-base">1. Multiple Means of Engagement <span className="font-normal text-fuchsia-700 italic">(The "Why" of Learning)</span></h4>
+                  <p className="text-sm text-fuchsia-800 mt-1">Providing options for recruiting interest, sustaining effort, and self-regulation. Focuses on motivation and autonomy.</p>
+                </div>
+              </div>
+              <div className="flex items-start p-4 bg-cyan-50 rounded-md border border-cyan-100">
+                <div className="ml-2">
+                  <h4 className="font-bold text-cyan-900 text-base">2. Multiple Means of Representation <span className="font-normal text-cyan-700 italic">(The "What" of Learning)</span></h4>
+                  <p className="text-sm text-cyan-800 mt-1">Providing options for perception, language, and comprehension. Focuses on presenting information in varied formats (visual, auditory, text).</p>
+                </div>
+              </div>
+              <div className="flex items-start p-4 bg-lime-50 rounded-md border border-lime-100">
+                <div className="ml-2">
+                  <h4 className="font-bold text-lime-900 text-base">3. Multiple Means of Action & Expression <span className="font-normal text-lime-700 italic">(The "How" of Learning)</span></h4>
+                  <p className="text-sm text-lime-800 mt-1">Providing options for physical action, communication, and executive functions. Focuses on allowing students diverse ways to demonstrate what they know.</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 border-l-4 border-gray-400 p-4 rounded-r-md">
+              <h4 className="font-bold text-gray-800 text-sm mb-1">How it's used on this site:</h4>
+              <p className="text-sm text-gray-600">UDL shouldn't be an afterthought. Therefore, every single Performance Task, Ongoing Assessment, and Lesson Idea generated by our AI tools includes an explicit <strong>UDL Considerations</strong> breakdown, providing you with targeted, actionable ways to lower barriers for your specific outcomes.</p>
             </div>
           </div>
         </div>
@@ -2069,6 +2172,13 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         
         const displayCount = unitItems.length;
 
+        const toolDescriptions = {
+          transfer: "A transfer goal defines the long-term aim of a curriculum, specifying what students should be able to independently do with their acquired knowledge and skills in new, real-world situations long after the specific instruction has ended.",
+          pt: "Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?",
+          evidence: "Through what other evidence will students demonstrate achievement of the desired results? Effective assessment relies on triangulation—gathering a balanced selection of observations, conversations, and student products. Using this diverse mix of formative and summative assessments throughout the unit ensures a holistic and accurate picture of student learning.",
+          selfAssessment: "Student self-assessment involves learners demonstrating metacognitive awareness of their own understanding, mental habits, and limitations. By evaluating their own progress against specified criteria, students actively reflect on their work to identify how they can improve rather than relying solely on teacher feedback."
+        };
+
         const removeIndividualItem = (category, indexToRemove) => {
           setUnitData(prev => {
             const upd = { ...prev };
@@ -2262,6 +2372,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg> Back
                     </button>
                   </div>
+                  {toolDescriptions[activeAiTool] && (
+                    <p className="text-sm text-gray-700 mb-4 italic border-l-4 border-indigo-200 pl-3 py-2 bg-indigo-50/50 rounded-r-md">
+                      {toolDescriptions[activeAiTool]}
+                    </p>
+                  )}
                   <label className="block text-sm font-bold text-gray-800 mb-1">Optional Custom Instructions:</label>
                   <p className="text-sm text-gray-600 mb-3 leading-relaxed">
                     Guide the AI by providing specific themes, constraints, resources, or student needs. <br/>
@@ -2323,6 +2438,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       Delete all
                     </button>
                     <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Transfer Goals</h3>
+                    <p className="text-sm text-gray-600 italic mb-4">{toolDescriptions['transfer']}</p>
                     <ul className="space-y-3">
                       {currentUnitData.transferGoals.map((g, i) => (
                         <li key={i} className="text-sm text-gray-800 flex justify-between items-start group">
@@ -2343,6 +2459,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       Delete all
                     </button>
                     <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Ongoing Assessment (Observations, Conversations, & Products)</h3>
+                    <p className="text-sm text-gray-600 italic mb-4">{toolDescriptions['evidence']}</p>
                     <div className="space-y-4">
                       {currentUnitData.otherEvidence.map((ev, i) => (
                         <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50 relative group">
@@ -2370,6 +2487,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       Delete
                     </button>
                     <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-20 flex items-center"><SparkleIcon /> Performance Task</h3>
+                    <p className="text-sm text-gray-600 italic mb-4">{toolDescriptions['pt']}</p>
                     <h4 className="font-bold text-sm text-gray-700">Scenario</h4>
                     <FormattedAIText text={currentUnitData.performanceTask.scenario} className="mb-4" />
                     <h4 className="font-bold text-sm text-gray-700">Elements</h4>
@@ -2416,6 +2534,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       Delete all
                     </button>
                     <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Student Self-Assessment</h3>
+                    <p className="text-sm text-gray-600 italic mb-4">{toolDescriptions['selfAssessment']}</p>
                     <div className="space-y-4">
                       {currentUnitData.selfAssessments.map((sa, i) => (
                         <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50 relative group">
@@ -2742,6 +2861,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
 
   <style>
     /* Native scrollbar blocker on the flex container so we can construct a tailored UX component beneath it */
+    html { scroll-behavior: smooth; }
+    
     .hide-native-scrollbar-x::-webkit-scrollbar:horizontal {
       height: 0px !important;
       display: none !important;

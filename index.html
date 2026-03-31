@@ -778,6 +778,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
             <tr>
               <th colspan="4" style="background-color: #fff; padding-top: 30px; padding-bottom: 10px; border: none; border-bottom: 2px solid #cbd5e1; font-size: 16pt; color: #1e293b; text-align: left;">Lesson Ideas</th>
             </tr>
+            <tr>
+              <td colspan="4">
+                <p style="font-size: 10pt; color: #475569; font-style: italic; margin-bottom: 8px;">What specific instructional activities and experiences will equip students to achieve the desired results and succeed on the assessments? These lesson ideas sequence learning through acquisition, meaning-making, and transfer while proactively incorporating Universal Design for Learning (UDL) principles.</p>
+              </td>
+            </tr>
             ${lessons.length > 0 ? lessons.map((l, i) => `
               <tr>
                 <td colspan="4" style="background-color: #e2e8f0; padding: 8px; font-size: 12pt;">
@@ -1373,9 +1378,11 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         const parsedGrade = parseInt(loadedConfig.grade);
         if (!isNaN(parsedGrade)) targetGrade = `a Grade ${Math.max(1, parsedGrade - 1)}`;
 
-        let prompt = `${context}\n\nPlease brainstorm exactly 3 creative, highly engaging lesson activities for this unit. For 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.`;
+        let prompt = `${context}\n\nYou are an expert Curriculum Designer specializing in Grant Wiggins and Jay McTighe's Understanding by Design (UbD) framework. Your task is to brainstorm exactly 3 creative, highly engaging lesson activities for this unit.\n\nContext: Understanding by Design - Stage 3 (Plan Learning Experiences and Instruction)\nIn the Understanding by Design (UbD) framework, Stage 3: Plan Learning Experiences and Instruction is the final phase of the backward design process. Having established the desired learning results in Stage 1 and determined the acceptable evidence for those results in Stage 2, educators use Stage 3 to thoughtfully design the specific instructional activities, lessons, and materials that will equip students to achieve those goals.\nThe core philosophy of Stage 3 is that instruction is a "means to an end". Rather than planning instruction based on favorite activities or merely marching through a textbook, educators must purposefully sequence coherent learning experiences that align tightly with the targeted assessments.\n\nWhen designing the learning plan, teachers are encouraged to balance three interrelated types of learning goals—Acquisition, Meaning-Making, and Transfer (A-M-T)—and adapt their teaching roles accordingly:\n* Acquisition (A): Helping students gain essential facts and basic skills. For these goals, the teacher acts as a direct instructor, utilizing strategies such as lectures, modeling, and guided practice.\n* Meaning-Making (M): Assisting students in exploring "Big Ideas" and essential questions so they can actively construct their own understanding. Here, the teacher acts as a facilitator, employing methods like inquiry-based learning, peer discussions, and Socratic seminars.\n* Transfer (T): Supporting students' ability to autonomously apply their learning to novel, real-world challenges. The teacher shifts to a coach, providing ongoing personalized feedback and guiding students through complex performance tasks and simulations.\n\nTo ensure that the resulting learning plan is comprehensive, engaging, and effectively sequenced, the UbD framework utilizes the WHERETO acronym as a guiding checklist. Ensure your generated lessons reflect these principles:\n* W (Where and Why): Ensuring students understand where the unit is headed, why the learning is important, and what the final performance expectations will be.\n* H (Hook and Hold): Hooking student interest early on and holding it throughout the unit via thought-provoking challenges and experiences.\n* E (Equip and Experience): Equipping students with the necessary tools, information, and experiences needed to achieve deep understanding and succeed on their assessments.\n* R (Rethink, Reflect, and Revise): Providing structured opportunities for students to rethink big ideas, reflect on their progress, and revise or polish their work based on feedback.\n* E (Evaluate): Building in diagnostic feedback and ensuring students have opportunities to evaluate their own progress through self-assessment.\n* T (Tailor): Tailoring and differentiating instruction to accommodate diverse learning styles, interests, and readiness levels without sacrificing rigor.\n* O (Organize): Organizing the sequence of learning experiences to maximize engagement, progressively moving students from teacher-guided activities toward independent transfer.\n\nFor 'competencies', select from the following Alberta Cross-curricular Competencies: ${competenciesList}.`;
+        
         if (customInstruction.trim()) prompt += `\n\nADDITIONAL INSTRUCTIONS FROM TEACHER:\n${customInstruction.trim()}`;
-        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 3 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
+        
+        prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 3 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do (Ensure you specify if this lesson focuses on Acquisition, Meaning-Making, or Transfer, and which WHERETO elements it hits).\n- "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
 
         try {
           const response = await generateGeminiContent(prompt, true);
@@ -2197,7 +2204,8 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           transfer: "A transfer goal defines the long-term aim of a curriculum, specifying what students should be able to independently do with their acquired knowledge and skills in new, real-world situations long after the specific instruction has ended.",
           pt: "Through what authentic performance task will students demonstrate the desired understandings, knowledge, and skills? (describes the learning activity in “story” form. Typically, the P.T. describes a scenario or situation that requires students to apply knowledge and skills to demonstrate their understanding in a real life situation. Describe your performance task scenario below. By what criteria will performances of understanding be judged?",
           evidence: "Through what other evidence will students demonstrate achievement of the desired results? Effective assessment relies on triangulation—gathering a balanced selection of observations, conversations, and student products. Using this diverse mix of formative and summative assessments throughout the unit ensures a holistic and accurate picture of student learning.",
-          selfAssessment: "Student self-assessment involves learners demonstrating metacognitive awareness of their own understanding, mental habits, and limitations. By evaluating their own progress against specified criteria, students actively reflect on their work to identify how they can improve rather than relying solely on teacher feedback."
+          selfAssessment: "Student self-assessment involves learners demonstrating metacognitive awareness of their own understanding, mental habits, and limitations. By evaluating their own progress against specified criteria, students actively reflect on their work to identify how they can improve rather than relying solely on teacher feedback.",
+          lessons: "What specific instructional activities and experiences will equip students to achieve the desired results and succeed on the assessments? These lesson ideas sequence learning through acquisition, meaning-making, and transfer while proactively incorporating Universal Design for Learning (UDL) principles."
         };
 
         const removeIndividualItem = (category, indexToRemove) => {
@@ -2580,6 +2588,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                       Delete all
                     </button>
                     <h3 className="text-lg font-bold text-indigo-900 mb-4 pb-2 border-b border-gray-100 pr-24 flex items-center"><SparkleIcon /> Lesson Activity Ideas</h3>
+                    <p className="text-sm text-gray-600 italic mb-4">{toolDescriptions['lessons']}</p>
                     <div className="space-y-4">
                       {currentUnitData.lessons.map((l, i) => (
                         <div key={i} className="border border-gray-200 p-4 rounded-lg bg-gray-50 relative group">
@@ -2590,7 +2599,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                           <div className="mb-3"><FormattedAIText text={l.description} /></div>
                           <UdlGrid udl={l.udl} />
                           <div className="mt-3 space-y-1">
-                             <p className="text-xs text-gray-600"><b>KUSPs:</b> {l.kusps}</p>
+                             <p className="text-xs text-gray-600"><b>KUSPs:</b> {l.kusps ? l.kusps.replace(/,\s*/g, ' | ') : ''}</p>
                              <p className="text-xs text-gray-600"><b>Competencies:</b> {l.competencies}</p>
                              <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
                           </div>
@@ -2808,7 +2817,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                                      <div className="mb-2"><FormattedAIText text={lesson.description} /></div>
                                      <UdlGrid udl={lesson.udl} />
                                      <div className="mt-3 space-y-1">
-                                        <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps}</p>
+                                        <p className="text-xs text-gray-600"><b>KUSPs:</b> {lesson.kusps ? lesson.kusps.replace(/,\s*/g, ' | ') : ''}</p>
                                         <p className="text-xs text-gray-600"><b>Competencies:</b> {lesson.competencies}</p>
                                         <p className="text-xs text-gray-600"><b>Success Criteria:</b> {lesson.successCriteria}</p>
                                      </div>

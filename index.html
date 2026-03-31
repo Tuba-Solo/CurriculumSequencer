@@ -38,7 +38,7 @@
     const { useState, useMemo, useEffect, useRef } = React;
 
     // --- Gemini API Integration ---
-    const generateGeminiContent = async (prompt, apiKey, expectJson = false) => {
+    const generateGeminiContent = async (prompt, expectJson = false) => {
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { 
@@ -86,48 +86,24 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         payload.generationConfig = { responseMimeType: "application/json" };
       }
 
-      const attemptFetch = async (modelName, keyToUse, retries = 2) => {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${keyToUse}`;
-        try {
-          const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            throw new Error(errData?.error?.message || `HTTP Error ${response.status}`);
-          }
-          
-          const data = await response.json();
-          return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
-        } catch (error) {
-          // Do not retry on terminal client errors like bad keys or hard quota locks
-          const isTerminal = error.message.includes('API key not valid') || error.message.includes('unregistered caller');
-          if (retries > 0 && !isTerminal) {
-            await new Promise(resolve => setTimeout(resolve, 1500)); // 1.5s delay to clear brief rate limits
-            return attemptFetch(modelName, keyToUse, retries - 1);
-          }
-          throw error;
+      const proxyUrl = `https://gemini-proxy.jon-thomas.workers.dev`;
+      
+      try {
+        const response = await fetch(proxyUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+          const errData = await response.text();
+          throw new Error(`Proxy Error: ${errData || 'HTTP ' + response.status}`);
         }
-      };
-
-      if (!apiKey || apiKey.trim() === '') {
-        // --- ROUTE 1: Development Canvas Proxy ---
-        try {
-          return await attemptFetch('gemini-2.5-flash-preview-09-2025', "");
-        } catch (err) {
-          throw new Error(`Canvas Proxy Error: ${err.message}`);
-        }
-      } else {
-        // --- ROUTE 2: Live Website Production ---
-        // Hardcoded to the current stable model (gemini-2.5-flash)
-        try {
-          return await attemptFetch('gemini-2.5-flash', apiKey.trim());
-        } catch (err) {
-          throw new Error(`Google API Rejected: ${err.message}`);
-        }
+        
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No content generated.";
+      } catch (error) {
+        throw error;
       }
     };
 
@@ -949,10 +925,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       const [hierarchyFilter, setHierarchyFilter] = useState('');
       const [saveStatus, setSaveStatus] = useState('');
       const [showInstructions, setShowInstructions] = useState(false);
-      
-      const [apiKey, setApiKey] = useState('');
-      const [tempApiKey, setTempApiKey] = useState('');
-      const [showApiInstructions, setShowApiInstructions] = useState(false);
 
       // AI Tool Intermediate State
       const [activeAiTool, setActiveAiTool] = useState(null);
@@ -985,12 +957,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       };
 
       useEffect(() => {
-        const savedKey = localStorage.getItem('geminiApiKey');
-        if (savedKey) {
-          setApiKey(savedKey);
-          setTempApiKey(savedKey);
-        }
-
         const savedData = localStorage.getItem('curriculumPlannerData');
         if (savedData) {
           try {
@@ -1009,19 +975,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
           }
         }
       }, []);
-
-      const handleSaveApiKey = () => {
-        if (tempApiKey.trim()) {
-          localStorage.setItem('geminiApiKey', tempApiKey.trim());
-          setApiKey(tempApiKey.trim());
-        }
-      };
-
-      const handleClearApiKey = () => {
-        localStorage.removeItem('geminiApiKey');
-        setApiKey('');
-        setTempApiKey('');
-      };
 
       const handleSaveProgress = () => {
         localStorage.setItem('curriculumPlannerData', JSON.stringify({ items, loadedConfig, unitData }));
@@ -1328,7 +1281,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       // AI GENERATION HANDLERS
       
       const handleGenerateTransferGoals = async (unitItems, unitNum) => {
-        if (!apiKey) return;
         setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'transfer', unitNum, selectedIndices: [], title: 'Brainstorming Transfer Goals...', content: null, isLoading: true, error: '' });
         
@@ -1340,7 +1292,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly two keys:\n- "alignmentCheck": A brief, 2-3 sentence string summarizing the core concepts you identified from the provided outcomes that informed these transfer goals.\n- "goals": An array of 3 to 5 objects. Each object must have exactly these string keys:\n  - "goal": The transfer goal string (starting with "Students will be able to independently use their learning to...").\n  - "rationale": A 1-2 sentence string explaining how this goal synthesizes the provided outcomes and applies to the real world.`;
 
         try {
-          const response = await generateGeminiContent(prompt, apiKey, true);
+          const response = await generateGeminiContent(prompt, true);
           const parsedData = parseLLMResponse(response);
           setLlmModal(prev => ({ ...prev, title: 'Transfer Goal Ideas', content: parsedData, isLoading: false }));
         } catch (err) {
@@ -1349,7 +1301,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       };
 
       const handleGeneratePerformanceTask = async (unitItems, unitNum) => {
-        if (!apiKey) return;
         setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'pt', unitNum, selectedIndices: [], title: 'Drafting Performance Task...', content: null, isLoading: true, error: '' });
         
@@ -1359,7 +1310,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         prompt += `\n\nYou MUST return ONLY a valid JSON object with exactly four keys:\n1. "scenario": A string describing the learning activity in story form.\n2. "elements": A string describing the specific elements of the task students must complete. You MUST explicitly list and define each of the GRASPS components. CRITICAL: Use proper Markdown formatting with nested bullet points (e.g., using hyphens - and indented spaces) to ensure clear hierarchies, particularly under 'Product' and 'Standards'.\n3. "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).\n4. "evaluativeCriteria": An ARRAY of objects representing a rubric. Each object must have exactly these string keys:\n   - "criterion": The short name or title of the specific evaluative criterion.\n   - "kusps": The specific Knowledge, Understandings, Skills & Procedures (KUSPs) being addressed.\n   - "descriptor": A detailed description of what successful demonstration of this criterion looks like.\n   - "teacherNotes": Notes for the teacher explaining exactly how this criterion relates to and measures the selected Learning Outcome(s) (LO).`;
 
         try {
-          const response = await generateGeminiContent(prompt, apiKey, true);
+          const response = await generateGeminiContent(prompt, true);
           const parsedData = parseLLMResponse(response);
           setLlmModal(prev => ({ ...prev, title: 'Performance Task Draft', content: parsedData, isLoading: false }));
         } catch (err) {
@@ -1368,7 +1319,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       };
 
       const handleGenerateOtherEvidence = async (unitItems, unitNum) => {
-        if (!apiKey) return;
         setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'evidence', unitNum, selectedIndices: [], title: 'Brainstorming Other Evidence...', content: null, isLoading: true, error: '' });
         
@@ -1380,7 +1330,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 4 to 6 objects. Each object must have exactly these string keys:\n- "title": A short, descriptive name for the task.\n- "evidence": A description of the assessment task or activity.\n- "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).\n- "evaluativeCriteria": A summary of the specific KUSPs being evaluated, PLUS one additional sentence explaining exactly how these KUSPs build toward the overarching Learning Outcome(s) (LO).\n- "method": Must be exactly "Conversation", "Observation", or "Product".\n- "assessmentType": Must be exactly "Formative" or "Summative".`;
 
         try {
-          const response = await generateGeminiContent(prompt, apiKey, true);
+          const response = await generateGeminiContent(prompt, true);
           const parsedData = parseLLMResponse(response);
           setLlmModal(prev => ({ ...prev, title: 'Other Evidence Ideas', content: parsedData, isLoading: false }));
         } catch (err) {
@@ -1389,7 +1339,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       };
 
       const handleGenerateSelfAssessment = async (unitItems, unitNum) => {
-        if (!apiKey) return;
         setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'selfAssessment', unitNum, selectedIndices: [], title: 'Brainstorming Self-Assessments...', content: null, isLoading: true, error: '' });
         
@@ -1401,7 +1350,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 6 to 9 objects (providing a mix of formative strategies, summative evaluations, and essential questions). CRITICAL: Do NOT generate UDL considerations for Student Self-Assessments. Focus purely on the assessment itself. Each object must have exactly these string keys:\n- "category": Must be exactly "Formative Strategy", "Summative Evaluation", or "Essential Question".\n- "title": A short, descriptive name for the strategy or the prompt.\n- "description": The detailed explanation of the routine, or the actual open-ended question.`;
 
         try {
-          const response = await generateGeminiContent(prompt, apiKey, true);
+          const response = await generateGeminiContent(prompt, true);
           const parsedData = parseLLMResponse(response);
           setLlmModal(prev => ({ ...prev, title: 'Student Self-Assessment Ideas', content: parsedData, isLoading: false }));
         } catch (err) {
@@ -1410,7 +1359,6 @@ Because the desired results from Stage 1 are derived from curricular standards, 
       };
 
       const handleGenerateLessonIdeas = async (unitItems, unitNum) => {
-        if (!apiKey) return;
         setActiveAiTool(null);
         setLlmModal({ isOpen: true, type: 'lessons', unitNum, selectedIndices: [], title: 'Brainstorming Lesson Ideas...', content: null, isLoading: true, error: '' });
         
@@ -1426,7 +1374,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
         prompt += `\n\nYou MUST return ONLY a valid JSON array containing exactly 5 objects. Each object must have these string keys:\n- "title": A catchy lesson title\n- "description": A brief description of what the students will do\n- "udl": A string containing the UDL Considerations. CRITICAL: You MUST use EXACTLY this format:\n### **Multiple Means of Engagement**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Representation**\n- [bullet point]\n- [bullet point]\n\n### **Multiple Means of Action and Expression**\n- [bullet point]\n- [bullet point]\n(Do NOT output wordy paragraphs, only these bold headings and bullets).\n- "kusps": How it targets the selected items\n- "competencies": The relevant cross-curricular competencies\n- "successCriteria": Concrete descriptions of what constitutes quality work. IMPORTANT: Write these in student-friendly language (e.g., "I can...") at ${targetGrade} reading level, which is exactly one year below the selected grade.`;
 
         try {
-          const response = await generateGeminiContent(prompt, apiKey, true);
+          const response = await generateGeminiContent(prompt, true);
           const parsedData = parseLLMResponse(response);
           setLlmModal(prev => ({ ...prev, title: 'Lesson Activity Ideas', content: parsedData, isLoading: false }));
         } catch (err) {
@@ -1885,12 +1833,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </ul>
               </div>
               <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-md">
-                <h3 className="font-bold text-indigo-900 text-lg mb-2 flex items-center"><SparkleIcon /> 4. AI Planning Assistants & API Keys</h3>
+                <h3 className="font-bold text-indigo-900 text-lg mb-2 flex items-center"><SparkleIcon /> 4. AI Planning Assistants</h3>
                 <p className="mb-2">This planner includes integrated AI assistants powered by Google Gemini to help you instantly draft <strong>Performance Tasks</strong> and brainstorm <strong>Lesson Activities</strong> based on your specifically mapped curriculum items.</p>
                 <ul className="list-disc pl-5 mt-2 space-y-1">
-                  <li><strong>Get a Key:</strong> To unlock these features, you need a free Google Gemini API Key. You can generate one instantly from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold">Google AI Studio</a>.</li>
-                  <li><strong>Enter your Key:</strong> Navigate to any generated Unit Plan (e.g., "Unit 1 Overview") via the top dropdown and paste your key into the "AI Planning Assistants" panel.</li>
-                  <li><strong>Privacy & Security:</strong> Your API key is saved securely and locally in your browser's memory. It is never sent to our servers. Because free-tier keys are used, please remember to <em>never input specific student names or sensitive information</em> into your curriculum plans.</li>
+                  <li><strong>Seamless Access:</strong> We have set up a secure, managed proxy so you no longer need an API key to access the AI features!</li>
+                  <li><strong>How to Use:</strong> Navigate to any generated Unit Plan (e.g., "Unit 1 Overview") via the top dropdown and interact with the "AI Planning Assistants" panel.</li>
+                  <li><strong>Privacy & Security:</strong> Please remember to <em>never input specific student names or sensitive information</em> into your curriculum plans.</li>
                   <li><strong>Add to Template:</strong> Once the AI generates a response you like, you can select elements and click "Add to Lesson Template" to automatically inject the content directly into your downloadable Word document!</li>
                 </ul>
               </div>
@@ -2280,35 +2228,9 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                   <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> 
                   AI Planning Assistants
                 </h3>
-                {apiKey && <button onClick={handleClearApiKey} className="text-xs text-indigo-500 hover:text-indigo-700 underline focus:outline-none">Clear API Key</button>}
               </div>
               
-              {!apiKey ? (
-                <div className="mt-3 bg-white p-4 rounded-md border border-indigo-100 shadow-sm">
-                  <p className="text-sm text-gray-700 mb-3">To use the AI Planning Assistants, please enter your free Google Gemini API key. Your key is saved locally in your browser and is never sent to our servers.</p>
-                  <div className="flex gap-2">
-                    <input type="password" placeholder="Paste your Gemini API key here..." value={tempApiKey} onChange={(e) => setTempApiKey(e.target.value)} className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                    <button onClick={handleSaveApiKey} disabled={!tempApiKey.trim()} className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-bold shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors">Save Key</button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-3">
-                    Don't have one? Get a free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
-                    <button onClick={() => setShowApiInstructions(!showApiInstructions)} className="ml-2 text-indigo-500 hover:text-indigo-700 underline focus:outline-none">{showApiInstructions ? 'Hide instructions' : 'How do I get a key?'}</button>
-                  </p>
-                  {showApiInstructions && (
-                    <div className="mt-3 p-4 bg-indigo-50 rounded border border-indigo-100 text-sm text-gray-800">
-                      <h4 className="font-bold text-indigo-900 mb-2">How to create your free API key:</h4>
-                      <ol className="list-decimal pl-5 space-y-1.5">
-                        <li>Click the Google AI Studio link above and <strong>Sign In</strong> with your Google/Gmail account.</li>
-                        <li>On the left side of the screen, click <strong>Get API key</strong>.</li>
-                        <li>Click the big blue <strong>Create API key</strong> button.</li>
-                        <li>In the box that pops up, click the <strong>Create API key in new project</strong> button.</li>
-                        <li>Wait a few seconds for the system to create a long password made of letters and numbers (this is your API key), then click <strong>Copy</strong> next to it.</li>
-                        <li>Come back to this unit planner page, paste that password into the box above, and click <strong>Save Key</strong>.</li>
-                      </ol>
-                    </div>
-                  )}
-                </div>
-              ) : !activeAiTool ? (
+              {!activeAiTool ? (
                 <>
                   <p className="text-sm text-indigo-700 mb-4">Use your selected curriculum items to automatically generate targeted materials for your unit.</p>
                   <div className="flex flex-wrap gap-3">
@@ -2369,14 +2291,12 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                 </div>
               )}
 
-              {apiKey && (
-                <div className="mt-5 pt-4 border-t border-indigo-200/60 flex items-start text-xs text-indigo-800/80 leading-relaxed">
-                  <svg className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  <p>
-                    <strong>Disclaimer:</strong> AI-generated content can make mistakes, lack specific context, or reflect biases. Always exercise your professional judgement to review and refine outputs to ensure they align with your students' needs and pedagogical standards. EIPS employees are encouraged to review <a href="https://www.eips.ca/about-us/administrative-procedures/142" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-indigo-900 transition-colors">Administrative Procedure 142 "Artificial Intelligence"</a>.
-                  </p>
-                </div>
-              )}
+              <div className="mt-5 pt-4 border-t border-indigo-200/60 flex items-start text-xs text-indigo-800/80 leading-relaxed">
+                <svg className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                <p>
+                  <strong>Disclaimer:</strong> AI-generated content can make mistakes, lack specific context, or reflect biases. Always exercise your professional judgement to review and refine outputs to ensure they align with your students' needs and pedagogical standards. EIPS employees are encouraged to review <a href="https://www.eips.ca/about-us/administrative-procedures/142" target="_blank" rel="noopener noreferrer" className="font-bold underline hover:text-indigo-900 transition-colors">Administrative Procedure 142 "Artificial Intelligence"</a>.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-6">

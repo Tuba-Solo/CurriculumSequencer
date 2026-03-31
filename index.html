@@ -2693,7 +2693,7 @@ Because the desired results from Stage 1 are derived from curricular standards, 
                           <div className="mb-3"><FormattedAIText text={l.description} /></div>
                           <UdlGrid udl={l.udl} />
                           <div className="mt-3 space-y-1">
-                             <p className="text-xs text-gray-600"><b>KUSPs:</b> {l.kusps ? l.kusps.replace(/,\s*/g, ' | ') : ''}</p>
+                             <p className="text-xs text-gray-600"><b>KUSPs:</b> {l.kusps ? l.kusps.trim().split(/[\s,;\n]+/).map(k => k.replace(/^[-*•]/, '').trim()).filter(Boolean).join(' | ') : ''}</p>
                              <p className="text-xs text-gray-600"><b>Competencies:</b> {l.competencies}</p>
                              <p className="text-xs text-gray-600"><b>Success Criteria:</b> {l.successCriteria}</p>
                           </div>
